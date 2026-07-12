@@ -1,28 +1,28 @@
 from playwright.sync_api import sync_playwright
 import json
 
-def capture_stream_link():
+def get_channel_links():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context()
-        page = context.new_page()
-
-        # নেটওয়ার্ক রিকোয়েস্ট মনিটর করার ফাংশন
-        def handle_request(request):
-            if "m3u8" in request.url:
-                print(f"Found Stream Link: {request.url}")
-                with open('stream_link.txt', 'w') as f:
-                    f.write(request.url)
-
-        page.on("request", handle_request)
-
-        print("Navigating to Toffee...")
-        # এখানে আপনার কাঙ্ক্ষিত ভিডিও পেজটির লিংক দিন
-        page.goto("https://toffeelive.com/en/watch/oDRWpp4Bb1O6C9k7We2Q", timeout=60000)
-        page.wait_for_timeout(15000) # লিংক লোড হওয়ার জন্য সময় দেওয়া
+        page = browser.new_page()
         
+        print("Visiting Homepage...")
+        page.goto("https://toffeelive.com/en/", timeout=60000)
+        page.wait_for_timeout(10000) 
+        
+        # সব চ্যানেলের লিংকের জন্য CSS selector ব্যবহার করা
+        # এটি সাধারণত 'a' ট্যাগ থেকে নেওয়া হয় যা নির্দিষ্ট পাথে যায়
+        links = page.eval_on_selector_all('a[href*="/watch/"]', "elements => elements.map(e => e.href)")
+        
+        # ইউনিক লিংকগুলো রাখা
+        unique_links = list(set(links))
+        
+        with open('channels.json', 'w') as f:
+            json.dump(unique_links, f, indent=4)
+            
+        print(f"Found {len(unique_links)} channels. Saved to channels.json")
         browser.close()
 
 if __name__ == "__main__":
-    capture_stream_link()
-    
+    get_channel_links()
+        
