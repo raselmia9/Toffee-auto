@@ -1,5 +1,4 @@
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync
 import json
 
 def fetch_cookies():
@@ -7,8 +6,8 @@ def fetch_cookies():
         browser = p.chromium.launch(headless=True)
         context = browser.new_context()
         page = context.new_page()
-        stealth_sync(page)
         
+        # stealth ব্যবহার না করেই প্রথমে দেখি কাজ করে কি না
         print("Navigating to Toffee...")
         try:
             page.goto("https://toffeelive.com/en/watch/oDRWpp4Bb1O6C9k7We2Q", timeout=60000)
