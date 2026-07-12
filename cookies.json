@@ -1,0 +1,102 @@
+[
+    {
+        "name": "toffee_locale",
+        "value": "en",
+        "domain": "toffeelive.com",
+        "path": "/",
+        "expires": 1815354947.150975,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "country",
+        "value": "US",
+        "domain": "toffeelive.com",
+        "path": "/",
+        "expires": -1,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "state",
+        "value": "DHK",
+        "domain": "toffeelive.com",
+        "path": "/",
+        "expires": -1,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "allowed_countries",
+        "value": "BD",
+        "domain": "toffeelive.com",
+        "path": "/",
+        "expires": -1,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "_fbp",
+        "value": "fb.1.1783818948739.446804611363066025",
+        "domain": ".toffeelive.com",
+        "path": "/",
+        "expires": 1791594952,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "mp_6019860d585d6c9cc82edba9d456e36c_mixpanel",
+        "value": "%7B%22distinct_id%22%3A%22%24device%3A4a28ff06-3f40-495e-bc84-e8618b7ca375%22%2C%22%24device_id%22%3A%224a28ff06-3f40-495e-bc84-e8618b7ca375%22%2C%22%24initial_referrer%22%3A%22%24direct%22%2C%22%24initial_referring_domain%22%3A%22%24direct%22%2C%22__mps%22%3A%7B%7D%2C%22__mpso%22%3A%7B%22%24initial_referrer%22%3A%22%24direct%22%2C%22%24initial_referring_domain%22%3A%22%24direct%22%7D%2C%22__mpus%22%3A%7B%7D%2C%22__mpa%22%3A%7B%7D%2C%22__mpu%22%3A%7B%7D%2C%22__mpr%22%3A%5B%5D%2C%22__mpap%22%3A%5B%5D%7D",
+        "domain": ".toffeelive.com",
+        "path": "/",
+        "expires": 1815354952,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "WZRK_S_R57-668-777Z",
+        "value": "%7B%22p%22%3A1%7D",
+        "domain": ".toffeelive.com",
+        "path": "/",
+        "expires": 1783820149,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "_gcl_au",
+        "value": "1.1.1284162286.1783818952",
+        "domain": ".toffeelive.com",
+        "path": "/",
+        "expires": 1791594951,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "_ga",
+        "value": "GA1.1.1515861749.1783818952",
+        "domain": ".toffeelive.com",
+        "path": "/",
+        "expires": 1818378951.675857,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    },
+    {
+        "name": "_ga_02M4D9SN5F",
+        "value": "GS2.1.s1783818951$o1$g0$t1783818952$j59$l0$h505742308",
+        "domain": ".toffeelive.com",
+        "path": "/",
+        "expires": 1818378952.633263,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "Lax"
+    }
+]
