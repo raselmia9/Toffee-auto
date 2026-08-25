@@ -1,84 +1,124 @@
 import os
+import re
 import asyncio
 from playwright.async_api import async_playwright
 
 M3U_FILE_NAME = "Toffee_Auto_Update.m3u"
 
-async def update_or_add_cookies():
-    if not os.path.exists(M3U_FILE_NAME):
-        print(f"ত্রুটি: {M3U_FILE_NAME} ফাইলটি পাওয়া যায়নি!")
-        return
-
-    print("টফি সাইটে প্রবেশ করা হচ্ছে এবং পেজ সম্পূর্ণ লোডের জন্য অপেক্ষা করা হচ্ছে...")
+async def generate_and_update_playlist():
+    print("টফি সাইট থেকে চ্যানেলগুলোর লিংক, লোগো ও কুকি সংগ্রহ করা হচ্ছে...")
+    
+    channels_info = []
     edge_cookie = ""
     
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-setuid-sandbox"])
+        browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
         page = await context.new_page()
         
         try:
-            # টফির লাইভ পেজে যাওয়া
-            await page.goto("https://toffeelive.com/en/live", timeout=60000)
-            
-            # পেজ ও প্লেয়ার পুরোপুরি লোড হওয়ার জন্য একটু সময় দেওয়া এবং স্ক্রল করা
-            print("পেজ স্ক্রল করা হচ্ছে যাতে কুকি ও স্ট্রিম রিকোয়েস্ট ট্রিগার হয়...")
-            for _ in range(3):
-                await page.evaluate("window.scrollBy(0, 500);")
-                await page.wait_for_timeout(3000)
+            main_url = "https://toffeelive.com/en/live"
+            await page.goto(main_url, timeout=60000)
+            await page.wait_for_timeout(8000)
 
-            # সর্বোচ্চ ১৫ সেকেন্ড পর্যন্ত বারবার চেক করা যতক্ষণ না Edge-Cache-Cookie পাওয়া যায়
-            for attempt in range(5):
-                cookies = await context.cookies()
-                for cookie in cookies:
-                    if cookie["name"] == "Edge-Cache-Cookie":
-                        edge_cookie = f"Edge-Cache-Cookie={cookie['value']}"
-                        break
-                if edge_cookie:
-                    print(f"সফলভাবে কুকি পাওয়া গেছে! (চেষ্টা নং: {attempt + 1})")
+            # পেজ স্ক্রল করে সব চ্যানেল লোড করা
+            await page.evaluate("window.scrollTo(0, document.body.scrollHeight/2);")
+            await page.wait_for_timeout(4000)
+
+            channel_cards = await page.locator("a[href*='/watch/']").all()
+            
+            seen_links = set()
+            for card in channel_cards:
+                href = await card.get_attribute("href")
+                if href and href not in seen_links:
+                    seen_links.add(href)
+                    watch_url = href if href.startswith("http") else f"https://toffeelive.com{href}"
+
+                    name = "Live Channel"
+                    logo = "https://assets-prod.services.toffeelive.com/logo.webp"
+                    
+                    try:
+                        text_content = await card.inner_text()
+                        if text_content and len(text_content.strip()) > 0:
+                            name = text_content.strip().split('\n')[0]
+                    except:
+                        pass
+
+                    try:
+                        img_elem = card.locator("img").first
+                        if await img_elem.count() > 0:
+                            logo = await img_elem.get_attribute("src")
+                    except:
+                        pass
+
+                    channels_info.append({
+                        "channel_name": name.strip(),
+                        "logo": logo.strip(),
+                        "watch_url": watch_url
+                    })
+
+            # কুকি সংগ্রহ করা
+            cookies = await context.cookies()
+            for cookie in cookies:
+                if cookie["name"] == "Edge-Cache-Cookie":
+                    edge_cookie = f"Edge-Cache-Cookie={cookie['value']}"
                     break
-                else:
-                    print(ل쿠키 := f"কুকির জন্য অপেক্ষা করা হচ্ছে... (চেষ্টা {attempt + 1}/5)")
-                    await page.wait_for_timeout(4000)
 
         except Exception as e:
-            print("কুকি ফেচ করার সময় ত্রুটি ঘটেছে:", e)
+            print("ত্রুটি:", e)
         finally:
             await browser.close()
 
     if not edge_cookie:
-        print("❌ দুঃখিত, পেজ পুরোপুরি লোড হওয়ার পরেও কোনো 'Edge-Cache-Cookie' পাওয়া যায়নি।")
+        print("নতুন কুকি পাওয়া যায়নি।")
         return
 
-    print(f"✅ নতুন কুকি দিয়ে M3U ফাইল আপডেট করা হচ্ছে...")
+    print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে।")
 
-    # M3U ফাইল পড়া
-    with open(M3U_FILE_NAME, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+    # যদি ফাইল আগে থেকে না থাকে, তবে একদম নতুন ফুল প্লেলিস্ট তৈরি করবে
+    if not os.path.exists(M3U_FILE_NAME):
+        print("নতুন M3U ফাইল তৈরি করা হচ্ছে...")
+        m3u_content = "#EXTM3U\n"
+        for item in channels_info:
+            cookie_str = f"|Cookie={edge_cookie}" if edge_cookie else ""
+            m3u_content += f'\n#EXTINF:-1 tvg-logo="{item["logo"]}" group-title="Toffee Live", {item["channel_name"]}\n'
+            m3u_content += f"{item['watch_url']}{cookie_str}\n"
 
-    updated_lines = []
-    link_count = 0
-    
-    for line in lines:
-        line_str = line.strip()
-        # চেক করা হচ্ছে এটি কোনো লিংক কি না
-        if line_str and not line_str.startswith("#"):
-            link_count += 1
-            # যদি আগে থেকে পাইপ (|) থাকে, তবে মূল লিংকটা আলাদা করা
-            base_link = line_str.split("|")[0]
-            # নতুন কুকি জোড়া লাগানো
-            new_line = f"{base_link}|Cookie={edge_cookie}\n"
-            updated_lines.append(new_line)
+        with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
+            f.write(m3u_content)
+        print("নতুন প্লেলিস্ট সফলভাবে তৈরি হয়েছে!")
+
+    else:
+        # ফাইল যদি আগে থাকে, তবে চ্যানেল ঠিক রেখে শুধু কুকি আপডেট বা যুক্ত করবে
+        print("বিদ্যমান ফাইল পাওয়া গেছে, কুকি আপডেট/যুক্ত করা হচ্ছে...")
+        with open(M3U_FILE_NAME, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # যদি ফাইলে আগে থেকেই কুকি ফরম্যাট থাকে, তবে রিমুভ করে নতুন কুকি বসাবে
+        if "Edge-Cache-Cookie=" in content:
+            updated_content = re.sub(
+                r'\|Cookie=Edge-Cache-Cookie=[^\s#\n]+', 
+                f'|Cookie={edge_cookie}', 
+                content
+            )
         else:
-            updated_lines.append(line)
+            # কুকি না থাকলে লিংকের শেষে যুক্ত করে দেবে
+            lines = content.splitlines()
+            updated_lines = []
+            for line in lines:
+                line_str = line.strip()
+                if line_str and not line_str.startswith("#"):
+                    base_link = line_str.split("|")[0]
+                    updated_lines.append(f"{base_link}|Cookie={edge_cookie}")
+                else:
+                    updated_lines.append(line_str)
+            updated_content = "\n".join(updated_lines)
 
-    # আপডেট করা কন্টেন্ট ফাইলে সেভ করা
-    with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
-        f.writelines(updated_lines)
-
-    print(f"সফলভাবে {link_count} টি লিংকের সাথে কুকি যুক্ত ও আপডেট করা হয়েছে!")
+        with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
+            f.write(updated_content)
+        print("সফলভাবে কুকি আপডেট/যুক্ত করা হয়েছে!")
 
 if __name__ == "__main__":
-    asyncio.run(update_or_add_cookies())
+    asyncio.run(generate_and_update_playlist())
