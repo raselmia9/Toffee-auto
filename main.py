@@ -20,7 +20,6 @@ async def update_only_cookies():
         )
         page = await context.new_page()
         try:
-            # সরাসরি লাইভ পেজে গিয়ে কুকি ক্যাপচার করা
             await page.goto("https://toffeelive.com/en/live", timeout=60000)
             await page.wait_for_timeout(8000)
 
@@ -38,24 +37,18 @@ async def update_only_cookies():
         print("নতুন কোনো কুকি পাওয়া যায়নি, তাই আপডেট বাতিল করা হলো।")
         return
 
-    print(f"নতুন কুকি সফলভাবে পাওয়া গেছে!")
+    print("নতুন কুকি সফলভাবে পাওয়া গেছে!")
 
     # M3U ফাইল পড়া
     with open(M3U_FILE_NAME, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # ফাইলের ভেতরে থাকা যেকোনো পুরনো কুকি অংশকে নতুন কুকি দিয়ে রিপ্লেস করা
-    # এটি |Cookie=Edge-Cache-Cookie=... বা শুধু কুকি অংশকে টার্গেট করবে
+    # ফাইলের ভেতরে থাকা পুরনো কুকি অংশকে নতুন কুকি দিয়ে নিখুঁতভাবে রিপ্লেস করা
     updated_content = re.sub(
         r'\|Cookie=Edge-Cache-Cookie=[^\s#\n]+', 
         f'|Cookie={edge_cookie}', 
         content
     )
-    
-    # যদি কোনো লিংকের সাথে শুধু |Cookie= না থেকে সরাসরি কুকি থাকে, তার জন্যও হ্যান্ডেল করা
-    if edge_cookie not in updated_content:
-        # যদি পাইপ চিহ্নের পরে কুকি না থাকে, তবে সব লিংকের শেষে কুকি বসিয়ে দেওয়া বা আপডেট করা
-        pass
 
     # আপডেট করা কন্টেন্ট ফাইলে সেভ করা
     with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
