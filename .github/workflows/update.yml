@@ -1,29 +1,36 @@
-name: Update Cookies
+name: Update Toffee Playlist
+
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 */12 * * *'
+    - cron: '0 */6 * * *' # প্রতি ৬ ঘণ্টা পর পর অটো রান হবে
+  workflow_dispatch: # ম্যানুয়ালি রান করার জন্য বাটন
 
 jobs:
-  build:
+  update-data:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.10'
+
       - name: Install dependencies
         run: |
-          pip install playwright playwright-stealth
+          pip install -r requirements.txt
           playwright install chromium
-      - name: Run Script
+
+      - name: Run script
         run: python main.py
-      - name: Commit changes
+
+      - name: Commit and push changes
         run: |
-          git config --global user.name "GitHub Action"
-          git config --global user.email "action@github.com"
-          git add cookies.json
-          git commit -m "Auto-update cookies" || exit 0
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          git add toffee_complete_playlist.json
+          git commit -m "Auto-update Toffee playlist JSON" || exit 0
           git push
-          
