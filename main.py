@@ -36,7 +36,7 @@ async def update_or_add_cookies():
         print("নতুন কোনো কুকি পাওয়া যায়নি, তাই আপডেট বাতিল করা হলো।")
         return
 
-    print("নতুন কুকি সফলভাবে পাওয়া গেছে!")
+    print(f"নতুন কুকি সফলভাবে পাওয়া গেছে: {edge_cookie[:30]}...")
 
     # M3U ফাইল পড়া
     with open(M3U_FILE_NAME, "r", encoding="utf-8") as f:
@@ -45,12 +45,12 @@ async def update_or_add_cookies():
     updated_lines = []
     for line in lines:
         line_str = line.strip()
-        # যদি লাইনটি একটি স্ট্রিম লিংক হয় (অর্থাৎ # দিয়ে শুরু না হয়)
+        # যদি লাইনটি খালি না হয় এবং # দিয়ে শুরু না হয় (অর্থাৎ এটি একটি লিংক)
         if line_str and not line_str.startswith("#"):
-            # যদি লিংকে আগে থেকেই পাইপ (|) বা কুকি থাকে, তবে শুধু মূল লিংকটা আলাদা করে নেওয়া
+            # যদি লিঙ্কে আগে থেকেই পাইপ (|) থাকে, তবে শুধু মূল লিংক অংশটা আলাদা করে নেওয়া
             base_link = line_str.split("|")[0]
             
-            # কুকি না থাকলে যুক্ত হবে, আর থাকলে নতুন কুকি দিয়ে আপডেট/প্রতিস্থাপিত হবে
+            # নতুন কুকি সহ লিংক তৈরি করা
             new_line = f"{base_link}|Cookie={edge_cookie}\n"
             updated_lines.append(new_line)
         else:
@@ -60,7 +60,7 @@ async def update_or_add_cookies():
     with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
         f.writelines(updated_lines)
 
-    print(f"সফলভাবে {M3U_FILE_NAME} ফাইলের লিংকে কুকি চেক করে আপডেট/যুক্ত করা হয়েছে!")
+    print(f"সফলভাবে {M3U_FILE_NAME} ফাইলের লিংকে কুকি যুক্ত ও আপডেট করা হয়েছে!")
 
 if __name__ == "__main__":
     asyncio.run(update_or_add_cookies())
