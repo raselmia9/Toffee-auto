@@ -13,7 +13,7 @@ async def generate_proper_playlist():
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            user_agent="Toffee (Linux;Android 14)"
         )
         page = await context.new_page()
         
@@ -58,16 +58,14 @@ async def generate_proper_playlist():
                         "watch_url": watch_url
                     })
 
-            print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। এবার প্রতিটি চ্যানেলের পেজ ভিজিট করে স্ট্রিম লিংক ও কুকি সংগ্রহ করা হচ্ছে...")
+            print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক ও কুকি সংগ্রহ করা হচ্ছে...")
 
-            # প্রতিটি চ্যানেলের ওয়াচ পেজে প্রবেশ করে রিয়েল স্ট্রিম লিংক ও কুকি বের করা
             final_playlist_data = []
             for idx, item in enumerate(channels_info):
                 stream_link = ""
                 try:
                     new_page = await context.new_page()
                     
-                    # রিকোয়েস্ট ইন্টারসেপ্ট করে .m3u8 বা প্লেলিস্ট লিংক খোঁজা
                     def intercept(req):
                         nonlocal stream_link
                         url = req.url
@@ -76,12 +74,11 @@ async def generate_proper_playlist():
 
                     new_page.on("request", intercept)
                     await new_page.goto(item['watch_url'], timeout=30000)
-                    await new_page.wait_for_timeout(5000) # পেজ লোড ও ভিডিও ট্রিগার হওয়ার সময়
+                    await new_page.wait_for_timeout(5000)
                     await new_page.close()
                 except Exception as e:
                     print(f"লিংক সংগ্রহে সমস্যা ({item['channel_name']}):", e)
 
-                # যদি আসল স্ট্রিম লিংক না পাওয়া যায়, তবে ওয়াচ ইউআরএল ব্যাকআপ হিসেবে থাকবে
                 final_stream = stream_link if stream_link else item['watch_url']
                 
                 final_playlist_data.append({
@@ -89,7 +86,6 @@ async def generate_proper_playlist():
                     "logo": item['logo'],
                     "stream_link": final_stream
                 })
-                print(f"[{idx+1}/{len(channels_info)}] প্রসেস সম্পন্ন: {item['channel_name']}")
 
             # ব্রাউজার কুকি সংগ্রহ করা
             cookies = await context.cookies()
@@ -107,20 +103,22 @@ async def generate_proper_playlist():
         print("❌ দুঃখিত, কোনো কুকি পাওয়া যায়নি।")
         return
 
-    print(f"✅ কুকি সফলভাবে পাওয়া গেছে এবং ফাইল তৈরি করা হচ্ছে...")
+    print(f"✅ কুকি সফলভাবে পাওয়া গেছে এবং আপনার দেওয়া ফরম্যাটে ফাইল তৈরি করা হচ্ছে...")
 
-    # VLC ফরম্যাট অনুযায়ী M3U ফাইল তৈরি করা যেখানে নিচে #EXTVLCOPT ট্যাগ থাকবে
+    # আপনার দেওয়া এক্সাম্পল ফরম্যাট অনুযায়ী M3U ফাইল তৈরি করা
     m3u_content = "#EXTM3U\n"
     for item in final_playlist_data:
-        m3u_content += f'\n#EXTINF:-1 tvg-logo="{item["logo"]}" group-title="Toffee Live", {item["channel_name"]}\n'
-        m3u_content += f"#EXTVLCOPT:http-user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64)\n"
-        m3u_content += f"#EXTVLCOPT:Cookie={global_cookie}\n"
+        clean_cookie = global_cookie.replace("Cookie=", "").strip()
+        
+        m3u_content += f'\n#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="{item["logo"]}", {item["channel_name"]}\n'
         m3u_content += f"{item['stream_link']}\n"
+        m3u_content += f"#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)\n"
+        m3u_content += f'#EXTHTTP:{{"cookie":"{clean_cookie}"}}\n'
 
     with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
         f.write(m3u_content)
 
-    print(f"🎉 সফলভাবে নতুন M3U প্লেলিস্ট ফাইল তৈরি এবং কুকি `#EXTVLCOPT` ট্যাগের মাধ্যমে যুক্ত করা হয়েছে!")
+    print(f"🎉 সফলভাবে আপনার কাঙ্ক্ষিত ফরম্যাটে M3U প্লেলিস্ট তৈরি হয়েছে!")
 
 if __name__ == "__main__":
     asyncio.run(generate_proper_playlist())
