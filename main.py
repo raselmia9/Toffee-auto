@@ -8,7 +8,8 @@ async def generate_proper_playlist():
     print("টফি সাইট থেকে চ্যানেলগুলোর তালিকা সংগ্রহ করা হচ্ছে...")
     
     channels_info = []
-    global_cookie = ""
+    cookie_name = ""
+    cookie_value = ""
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
@@ -91,7 +92,8 @@ async def generate_proper_playlist():
             cookies = await context.cookies()
             for cookie in cookies:
                 if cookie["name"] == "Edge-Cache-Cookie":
-                    global_cookie = f"Edge-Cache-Cookie={cookie['value']}"
+                    cookie_name = cookie["name"]
+                    cookie_value = cookie["value"]
                     break
 
         except Exception as e:
@@ -99,21 +101,21 @@ async def generate_proper_playlist():
         finally:
             await browser.close()
 
-    if not global_cookie:
+    if not cookie_value:
         print("❌ দুঃখিত, কোনো কুকি পাওয়া যায়নি।")
         return
 
-    print(f"✅ কুকি সফলভাবে পাওয়া গেছে এবং আপনার দেওয়া ফরম্যাটে ফাইল তৈরি করা হচ্ছে...")
+    print(f"✅ কুকি সফলভাবে পাওয়া গেছে এবং আপনার কাঙ্ক্ষিত ফরম্যাটে ফাইল তৈরি করা হচ্ছে...")
 
-    # আপনার দেওয়া এক্সাম্পল ফরম্যাট অনুযায়ী M3U ফাইল তৈরি করা
+    # আপনার দেওয়া সঠিক ফরম্যাট অনুযায়ী M3U ফাইল তৈরি করা
     m3u_content = "#EXTM3U\n"
     for item in final_playlist_data:
-        clean_cookie = global_cookie.replace("Cookie=", "").strip()
+        cookie_string = f"{cookie_name}={cookie_value}"
         
         m3u_content += f'\n#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="{item["logo"]}", {item["channel_name"]}\n'
         m3u_content += f"{item['stream_link']}\n"
         m3u_content += f"#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)\n"
-        m3u_content += f'#EXTHTTP:{{"cookie":"{clean_cookie}"}}\n'
+        m3u_content += f'#EXTHTTP:{{"cookie":"{cookie_string}"}}\n'
 
     with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
         f.write(m3u_content)
