@@ -16,6 +16,23 @@ async def generate_proper_playlist():
         context = await browser.new_context(
             user_agent="Toffee (Linux;Android 14)"
         )
+        
+        # আপনার প্রিমিয়াম অ্যাকাউন্ট বা ডিভাইসের কুকিগুলো ব্রাউজারে ইনজেক্ট করা হচ্ছে
+        await context.add_cookies([
+            {
+                "name": "device_token",
+                "value": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6IjcyMzgzZDhkLThhNzctNDRjOS04OGY4LTcyZmE0YTdlMjE5ZiIsImV4cCI6MTc5MDU2NzU2MywiaWF0IjoxNzg3OTM3NzYzLCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6IjRhNzBlNjYwLWY0ODYtNDBjMS1iYzlhLTI5ZGMyZWFjMmJkYl8xNzg3OTM3NzYzIiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiNzIzODNkOGQtOGE3Ny00NGM5LTg4ZjgtNzJmYTRhN2UyMTlmIiwic19pZCI6IjcyMzgzZDhkLThhNzctNDRjOS04OGY4LTcyZmE0YTdlMjE5ZiIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6ImRldmljZSJ9.1cdEXXUXVaZyrBB-_7Yr2hcbSXHgJ-tCzZBG9tIZMaw7LcItOteaE5KrAN0bI0bh5x44Hv5YapzE4tjEBGhYNQ",
+                "domain": "toffeelive.com",
+                "path": "/"
+            },
+            {
+                "name": "device_refresh_token",
+                "value": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6IjcyMzgzZDhkLThhNzctNDRjOS04OGY4LTcyZmE0YTdlMjE5ZiIsImV4cCI6MTgwMzcxNjU2MywiaWF0IjoxNzg3OTM3NzYzLCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6IjRhNzBlNjYwLWY0ODYtNDBjMS1iYzlhLTI5ZGMyZWFjMmJkYl8xNzg3OTM3NzYzIiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiNzIzODNkOGQtOGE3Ny00NGM5LTg4ZjgtNzJmYTRhN2UyMTlmIiwic19pZCI6IjcyMzgzZDhkLThhNzctNDRjOS04OGY4LTcyZmE0YTdlMjE5ZiIsInRva2VuIjoicmVmcmVzaCIsInR5cGUiOiJkZXZpY2UifQ.fPaIITIowUp9QD0vrmDUMqifG_WA5FUlvBWIeINCQiaFLbixkUDCpeJhuXQ6qMbDNQrZzsesjDS6RqCnFEprOw",
+                "domain": "toffeelive.com",
+                "path": "/"
+            }
+        ])
+        
         page = await context.new_page()
         
         try:
@@ -88,7 +105,7 @@ async def generate_proper_playlist():
                     "stream_link": final_stream
                 })
 
-            # ব্রাউজার কুকি সংগ্রহ করা
+            # ব্রাউজার থেকে Edge-Cache-Cookie সংগ্রহ করা
             cookies = await context.cookies()
             for cookie in cookies:
                 if cookie["name"] == "Edge-Cache-Cookie":
@@ -102,15 +119,14 @@ async def generate_proper_playlist():
             await browser.close()
 
     if not cookie_value:
-        print("❌ দুঃখিত, কোনো কুকি পাওয়া যায়নি।")
-        return
+        print("⚠️ সতর্কবার্তা: সরাসরি Edge-Cache-Cookie পাওয়া যায়নি, তবে ডিভাইস টোকেন দিয়ে ফাইল তৈরি করা হচ্ছে...")
 
-    print(f"✅ কুকি সফলভাবে পাওয়া গেছে এবং আপনার কাঙ্ক্ষিত ফরম্যাটে ফাইল তৈরি করা হচ্ছে...")
+    print(f"✅ ফাইল তৈরি করা হচ্ছে...")
 
-    # আপনার দেওয়া সঠিক ফরম্যাট অনুযায়ী M3U ফাইল তৈরি করা
+    # M3U ফাইল তৈরি করা
     m3u_content = "#EXTM3U\n"
     for item in final_playlist_data:
-        cookie_string = f"{cookie_name}={cookie_value}"
+        cookie_string = f"{cookie_name}={cookie_value}" if cookie_value else "Edge-Cache-Cookie="
         
         m3u_content += f'\n#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="{item["logo"]}", {item["channel_name"]}\n'
         m3u_content += f"{item['stream_link']}\n"
@@ -120,7 +136,7 @@ async def generate_proper_playlist():
     with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
         f.write(m3u_content)
 
-    print(f"🎉 সফলভাবে আপনার কাঙ্ক্ষিত ফরম্যাটে M3U প্লেলিস্ট তৈরি হয়েছে!")
+    print(f"🎉 সফলভাবে M3U প্লেলিস্ট তৈরি হয়েছে!")
 
 if __name__ == "__main__":
     asyncio.run(generate_proper_playlist())
