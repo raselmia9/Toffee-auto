@@ -15,17 +15,46 @@ async def generate_proper_playlist():
     cookie_value = ""
     login_status_msg = "❌ [FAILED]: কুকি লোড বা লগইন স্ট্যাটাস চেক করা যায়নি।"
     
-    # JSON ফাইল থেকে কুকি এবং সেশন ডাটা পার্স করা
+    # ফাইল থেকে কুকি এবং সেশন ডাটা পার্স করার নিরাপদ পদ্ধতি
     cookies_to_add = []
     try:
         if os.path.exists(COOKIE_FILE_NAME):
             with open(COOKIE_FILE_NAME, "r", encoding="utf-8") as f:
-                raw_data = json.load(f)
+                file_content = f.read().strip()
                 
-            # ১. সরাসরি কুকি স্ট্রিং পার্স করা
-            cookie_string = raw_data.get("cookies", "")
-            if cookie_string:
-                for item in cookie_string.split(";"):
+            # প্রথমে চেষ্টা করা হবে জেসন হিসেবে পার্স করার
+            try:
+                raw_data = json.loads(file_content)
+                cookie_string = raw_data.get("cookies", "")
+                if cookie_string:
+                    for item in cookie_string.split(";"):
+                        if "=" in item:
+                            parts = item.strip().split("=", 1)
+                            if len(parts) == 2:
+                                cookies_to_add.append({
+                                    "name": parts[0].strip(),
+                                    "value": parts[1].strip(),
+                                    "url": "https://toffeelive.com"
+                                })
+                
+                # লোকালস্টোরেজ থেকে auth_session বা সাবস্ক্রিপশন ডাটা যুক্ত করা
+                local_storage = raw_data.get("localStorage", {})
+                if "auth_session" in local_storage:
+                    try:
+                        auth_data = json.loads(local_storage["auth_session"])
+                        if "access" in auth_data:
+                            cookies_to_add.append({
+                                "name": "auth_access_token",
+                                "value": auth_data["access"],
+                                "url": "https://toffeelive.com"
+                            })
+                    except:
+                        pass
+
+            except json.JSONDecodeError:
+                # যদি জেসন ফরম্যাটে কোনো সিনট্যাক্স এরর থাকে, তবে র-টেক্সট বা স্ট্রিং হিসেবে কুকি রিড করা হবে
+                print("⚠️ জেসন ফরম্যাটে সিনট্যাক্স এরর পাওয়া গেছে, র-টেক্সট থেকে কুকি রিড করা হচ্ছে...")
+                for item in file_content.split(";"):
                     if "=" in item:
                         parts = item.strip().split("=", 1)
                         if len(parts) == 2:
@@ -34,29 +63,15 @@ async def generate_proper_playlist():
                                 "value": parts[1].strip(),
                                 "url": "https://toffeelive.com"
                             })
-            
-            # ২. লোকালস্টোরেজ থেকে auth_session বা সাবস্ক্রিপশন ডাটা যুক্ত করা যদি থাকে
-            local_storage = raw_data.get("localStorage", {})
-            if "auth_session" in local_storage:
-                # সাবস্ক্রিপশন সেশন কুকি হিসেবে যুক্ত করা
-                try:
-                    auth_data = json.loads(local_storage["auth_session"])
-                    if "access" in auth_data:
-                        cookies_to_add.append({
-                            "name": "auth_access_token",
-                            "value": auth_data["access"],
-                            "url": "https://toffeelive.com"
-                        })
-                except:
-                    pass
 
-            login_status_msg = "🎉 [SUCCESS]: প্রিমিয়াম সেশন এবং কুকি 'Loging Cookie.json' থেকে সফলভাবে লোড হয়েছে!"
+            login_status_msg = "🎉 [SUCCESS]: প্রিমিয়াম সেশন এবং কুকি ফাইল থেকে সফলভাবে লোড হয়েছে!"
             print(login_status_msg)
         else:
             print(f"⚠️ {COOKIE_FILE_NAME} ফাইলটি পাওয়া যায়নি!")
+            login_status_msg = f"❌ [ERROR]: {COOKIE_FILE_NAME} ফাইলটি পাওয়া যায়নি।"
     except Exception as e:
-        print("❌ কুকি ফাইল পড়তে সমস্যা হয়েছে:", e)
-        login_status_msg = f"❌ [ERROR]: কুকি পার্স করতে গিয়ে ত্রুটি: {str(e)}"
+        print("❌ কুকি পড়তে সমস্যা হয়েছে:", e)
+        login_status_msg = f"❌ [ERROR]: {str(e)}"
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
