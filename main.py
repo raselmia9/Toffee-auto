@@ -4,6 +4,13 @@ import asyncio
 from playwright.async_api import async_playwright
 
 M3U_FILE_NAME = "Toffee_Auto_Update.m3u"
+LOG_FILE_NAME = "login_status_log.txt"
+
+async def write_log(status_message):
+    """লগইন স্ট্যাটাস বা সমস্যা একটি আলাদা টেক্সট ফাইলে লেখার জন্য"""
+    with open(LOG_FILE_NAME, "w", encoding="utf-8") as f:
+        f.write(status_message)
+    print(f"📝 লগ স্ট্যাটাস সেভ হয়েছে: {LOG_FILE_NAME}")
 
 async def generate_proper_playlist():
     print("🔐 আপনার লগইন সেশন এবং কুকিজ ব্রাউজারে ইনজেক্ট করা হচ্ছে...")
@@ -19,7 +26,7 @@ async def generate_proper_playlist():
             viewport={"width": 1280, "height": 800}
         )
         
-        # ১. কুকিজ (Cookies) পার্স করে ব্রাউজারে ইনজেক্ট করা
+        # ১. কুকিজ ইনজেক্ট করা
         raw_cookies = "country=BD; state=DHK; allowed_countries=BD; device_id=6b70709f-6b1e-4f88-8b66-d4a0f8961f44; device_token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MDYzMjY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6ImRldmljZSJ9.U8zNM7bHNlUWvzYxNDr9iBAkOZju4AXMLgAxsE2F3CUsAHwJtl5jsDLWUAzs8XfO1WDzH2Lm2RiYt1eZsdYqbw; device_refresh_token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTgwMzc4MTY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoicmVmcmVzaCIsInR5cGUiOiJkZXZpY2UifQ.JJdo1lVnCVZXiL3OWoMkQVIRdIKSpFggReieJR4IInysnfvBrKO1DlVZqCwvQK9uoVKv6-xjc_lC_2PJ2FBEYQ; _fbp=fb.1.1788002900646.16103863163339320; WZRK_G=84c0c3d472a84f1ab2797ae369aba48f; _gcl_au=1.1.428714697.1788002903; _ga=GA1.1.1128668039.1788002902; mp_6019860d585d6c9cc82edba9d456e36c_mixpanel=%7B%22distinct_id%22%3A%22fde9f827-6374-494a-8b08-c75584f8c625%22%2C%22%24device_id%22%3A%224ea986bc-3b4f-4285-beea-044f3d3ae6b9%22%2C%22%24initial_referrer%22%3A%22%24direct%22%2C%22%24initial_referring_domain%22%3A%22%24direct%22%2C%22__mps%22%3A%7B%7D%2C%22__mpso%22%3A%7B%22%24initial_referrer%22%3A%22%24direct%22%2C%22%24initial_referring_domain%22%3A%22%24direct%22%7D%2C%22__mpus%22%3A%7B%7D%2C%22__mpa%22%3A%7B%7D%2C%22__mpu%22%3A%7B%7D%2C%22__mpr%22%3A%5B%5D%2C%22__mpap%22%3A%5B%5D%2C%22%24user_id%22%3A%22fde9f827-6374-494a-8b08-c75584f8c625%22%7D; WZRK_S_R57-668-777Z=%7B%22p%22%3A1%2C%22s%22%3A1788005444%2C%22t%22%3A1788005446%7D; _ga_02M4D9SN5F=GS2.1.s1788002902$o1$g1$t1788005446$j60$l0$h540491668"
         cookie_list = []
         for item in raw_cookies.split("; "):
@@ -35,7 +42,7 @@ async def generate_proper_playlist():
         
         page = await context.new_page()
         
-        # ২. লোকাল স্টোরেজ সেট করার জন্য ডোমেনে যাওয়া
+        # ২. লোকাল স্টোরেজ সেট আপ
         await page.goto("https://toffeelive.com/en", timeout=60000)
         
         local_storage_data = {
@@ -60,16 +67,33 @@ async def generate_proper_playlist():
             "WZRK_G": "\"84c0c3d472a84f1ab2797ae369aba48f\""
         }
 
-        # নিরাপদ উপায়ে লোকাল স্টোরেজ ডাটা ব্রাউজারে পাস করা
         await page.evaluate("(data) => { for (let k in data) { localStorage.setItem(k, data[k]); } }", local_storage_data)
         
-        # ৩. মূল লাইভ পেজে যাওয়া
+        # ৩. মেইন লাইভ পেজে যাওয়া এবং লগইন স্ট্যাটাস চেক করা
         main_url = "https://toffeelive.com/en/live"
-        await page.goto(main_url, timeout=60000)
-        await page.wait_for_timeout(6000)
+        try:
+            await page.goto(main_url, timeout=60000)
+            await page.wait_for_timeout(6000)
 
-        print("✅ লগইন সেশন সক্রিয় হয়েছে! চ্যানেল স্ক্যান করা হচ্ছে...")
+            # লগইন ভ্যালিডেশন চেক: লোকাল স্টোরেজে auth_session আছে কি না এবং তা সাবস্ক্রাইবার কি না যাচাই
+            auth_check = await page.evaluate("() => localStorage.getItem('auth_session')")
+            if auth_check and "subscriber" in auth_check:
+                log_msg = "SUCCESS: Login Successful! Premium subscription session is active."
+                print(f"✅ {log_msg}")
+            else:
+                log_msg = "WARNING: Session injected, but subscriber status could not be fully verified in LocalStorage."
+                print(f"⚠️ {log_msg}")
+            
+            await write_log(log_msg)
 
+        except Exception as e:
+            err_msg = f"ERROR: Failed during login verification or page load. Details: {str(e)}"
+            print(f"❌ {err_msg}")
+            await write_log(err_msg)
+            await browser.close()
+            return
+
+        # ৪. চ্যানেল স্ক্যানিং এবং লিংক ক্যাপচার অংশ
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight/2);")
         await page.wait_for_timeout(4000)
 
@@ -113,10 +137,11 @@ async def generate_proper_playlist():
             try:
                 new_page = await context.new_page()
                 
+                # উন্নত লিংক ইন্টারসেপশন (m3u8, manifest বা mpd লিংক ধরার জন্য)
                 def handle_request(req):
                     nonlocal stream_link
                     url = req.url
-                    if ".m3u8" in url or "playlist" in url or "manifest" in url:
+                    if any(ext in url for ext in [".m3u8", "playlist", "manifest", ".mpd"]):
                         stream_link = url
 
                 new_page.on("request", handle_request)
