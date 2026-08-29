@@ -28,7 +28,7 @@ jobs:
           playwright install-deps chromium
 
       - name: Run Script to Generate M3U
-        run: python Toffee_Auto_Update.py
+        run: python main.py
 
       - name: Commit and Push Changes
         run: |
