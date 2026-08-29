@@ -1,118 +1,153 @@
 import os
-import json
-import requests
-from bs4 import BeautifulSoup
+import asyncio
+from playwright.async_api import async_playwright
 
 M3U_FILE_NAME = "Toffee_Auto_Update.m3u"
 
-SAVED_COOKIES = "country=BD; state=DHK; allowed_countries=BD; device_id=6b70709f-6b1e-4f88-8b66-d4a0f8961f44; device_token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MDYzMjY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6ImRldmljZSJ9.U8zNM7bHNlUWvzYxNDr9iBAkOZju4AXMLgAxsE2F3CUsAHwJtl5jsDLWUAzs8XfO1WDzH2Lm2RiYt1eZsdYqbw; device_refresh_token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTgwMzc4MTY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoicmVmcmVzaCIsInR5cGUiOiJkZXZpY2UifQ.JJdo1lVnCVZXiL3OWoMkQVIRdIKSpFggReieJR4IInysnfvBrKO1DlVZqCwvQK9uoVKv6-xjc_lC_2PJ2FBEYQ; _fbp=fb.1.1788002900646.16103863163339320; WZRK_G=84c0c3d472a84f1ab2797ae369aba48f; _gcl_au=1.1.428714697.1788002903; _ga=GA1.1.1128668039.1788002902; _ga_02M4D9SN5F=GS2.1.s1788023984$o2$g0$t1788023984$j60$l0$h1763188672"
+# আপনার পরীক্ষিত সফল কুকি ও ডিভাইস টোকেন এখানে যুক্ত করা হলো
+SAVED_COOKIES = [
+    {"name": "country", "value": "BD", "domain": ".toffeelive.com", "path": "/"},
+    {"name": "state", "value": "DHK", "domain": ".toffeelive.com", "path": "/"},
+    {"name": "allowed_countries", "value": "BD", "domain": ".toffeelive.com", "path": "/"},
+    {"name": "device_id", "value": "6b70709f-6b1e-4f88-8b66-d4a0f8961f44", "domain": ".toffeelive.com", "path": "/"},
+    {"name": "device_token", "value": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MDYzMjY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6ImRldmljZSJ9.U8zNM7bHNlUWvzYxNDr9iBAkOZju4AXMLgAxsE2F3CUsAHwJtl5jsDLWUAzs8XfO1WDzH2Lm2RiYt1eZsdYqbw", "domain": ".toffeelive.com", "path": "/"},
+    {"name": "device_refresh_token", "value": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTgwMzc4MTY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoicmVmcmVzaCIsInR5cGUiOiJkZXZpY2UifQ.JJdo1lVnCVZXiL3OWoMkQVIRdIKSpFggReieJR4IInysnfvBrKO1DlVZqCwvQK9uoVKv6-xjc_lC_2PJ2FBEYQ"}
+]
 
-def generate_playlist_via_api():
-    print("=" * 60)
-    print(" 🚀 TOFFEE DIRECT API & DATA EXTRACTOR")
-    print("=" * 60)
-
-    headers = {
-        "User-Agent": "Toffee (Linux;Android 14)",
-        "Cookie": SAVED_COOKIES,
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.5"
-    }
-
-    url = "https://toffeelive.com/en/live"
-    print("📡 টফি সার্ভার থেকে সরাসরি ডেটা ফেচ করা হচ্ছে...")
-
-    try:
-        response = requests.get(url, headers=headers, timeout=30)
-        if response.status_code != 200:
-            print(f"❌ সার্ভার থেকের এরর কোড এসেছে: {response.status_code}")
-            return
-
-        # BeautifulSoup দিয়ে পেজ পার্স করা
-        soup = BeautifulSoup(response.text, 'html.parser')
+async def generate_proper_playlist():
+    print("টফি সাইট থেকে চ্যানেলগুলোর তালিকা সংগ্রহ করা হচ্ছে...")
+    
+    channels_info = []
+    cookie_name = ""
+    cookie_value = ""
+    
+    async with async_playwright() as p:
+        # গিটহাব অ্যাকশন বা লিনাক্স সার্ভারের জন্য হেডলেস মোড
+        browser = await p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+        )
+        context = await browser.new_context(
+            user_agent="Toffee (Linux;Android 14)",
+            viewport={"width": 1280, "height": 800}
+        )
         
-        # Next.js এর বিল্ট-ইন জেসন ডেটা ট্যাগ খুঁজে বের করা
-        script_tag = soup.find('script', id='__NEXT_DATA__')
-        if not script_tag:
-            print("❌ পেজে কোনো নেক্সট ডাটা (Next Data) পাওয়া যায়নি!")
-            return
-
-        json_data = json.loads(script_tag.string)
+        # ব্রাউজারে আমাদের ভ্যালিড কুকিগুলো আগে থেকেই যুক্ত করে দেওয়া
+        await context.add_cookies(SAVED_COOKIES)
         
-        # জেজন স্ট্রাকচার থেকে চ্যানেল লিস্ট খুঁজে বের করার চেষ্টা
-        channels_info = []
+        page = await context.new_page()
+        
+        # পারফরম্যান্স বাড়ানোর জন্য ছবি, ফন্ট এবং স্টাইলশিট ব্লক করা (দ্রুত লোড হওয়ার জন্য)
+        await page.route("**/*", lambda route: route.continue_() if route.request.resource_type not in ["image", "media", "font", "stylesheet"] else route.abort())
+
         try:
-            # সাধারণত নেক্সট ডেটার প্রপসের ভেতরে চ্যানেল বা লাইভ কন্টেন্টের ডেটা থাকে
-            queries = json_data.get("props", {}).get("pageProps", {})
-            
-            # ডেটার বিভিন্ন সম্ভাব্য পাথ চেক করা
-            items_list = []
-            if "initialState" in queries:
-                # যদি রিডেক্স বা অন্য স্টেট থাকে
-                pass
-            
-            # বিকল্প হিসেবে পেজের ভেতরের সব হাইপারলিংক বা এঙ্কর ট্যাগ থেকে চ্যানেল সংগ্রহ করা
-            links = soup.find_all('a', href=lambda href: href and '/watch/' in href)
-            print(f"🔍 মোট {len(links)} টি চ্যানেল লিংক পাওয়া গেছে।")
+            main_url = "https://toffeelive.com/en/live"
+            await page.goto(main_url, timeout=60000)
+            await page.wait_for_timeout(5000)
 
+            # পেজের একদম নিচ পর্যন্ত স্ক্রোল করে সব চ্যানেল লোড করা নিশ্চিত করা
+            previous_height = await page.evaluate("document.body.scrollHeight")
+            while True:
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+                await page.wait_for_timeout(2000)
+                current_height = await page.evaluate("document.body.scrollHeight")
+                if current_height == previous_height:
+                    break
+                previous_height = current_height
+
+            channel_cards = await page.locator("a[href*='/watch/']").all()
+            
             seen_links = set()
-            for a in links:
-                href = a.get('href')
+            for card in channel_cards:
+                href = await card.get_attribute("href")
                 if href and href not in seen_links:
                     seen_links.add(href)
                     watch_url = href if href.startswith("http") else f"https://toffeelive.com{href}"
-                    
-                    # চ্যানেলের নাম খোঁজা
+
                     name = "Live Channel"
-                    text = a.get_text(strip=True)
-                    if text:
-                        name = text.split('\n')[0]
-                    
-                    # লোগো খোঁজা
                     logo = "https://assets-prod.services.toffeelive.com/logo.webp"
-                    img = a.find('img')
-                    if img and img.get('src'):
-                        logo = img.get('src')
+                    
+                    try:
+                        text_content = await card.inner_text()
+                        if text_content and len(text_content.strip()) > 0:
+                            name = text_content.strip().split('\n')[0]
+                    except:
+                        pass
+
+                    try:
+                        img_elem = card.locator("img").first
+                        if await img_elem.count() > 0:
+                            logo = await img_elem.get_attribute("src")
+                    except:
+                        pass
 
                     channels_info.append({
-                        "channel_name": name,
-                        "logo": logo,
+                        "channel_name": name.strip(),
+                        "logo": logo.strip(),
                         "watch_url": watch_url
                     })
 
+            print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক ও কুকি সংগ্রহ করা হচ্ছে...")
+
+            final_playlist_data = []
+            for item in channels_info:
+                stream_link = ""
+                try:
+                    new_page = await context.new_page()
+                    
+                    def intercept(req):
+                        nonlocal stream_link
+                        url = req.url
+                        if ".m3u8" in url or "playlist" in url or "manifest" in url:
+                            stream_link = url
+
+                    new_page.on("request", intercept)
+                    await new_page.goto(item['watch_url'], timeout=25000)
+                    await new_page.wait_for_timeout(3000)
+                    await new_page.close()
+                except Exception as e:
+                    print(f"লিংক সংগ্রহে সমস্যা ({item['channel_name']}):", e)
+
+                final_stream = stream_link if stream_link else item['watch_url']
+                
+                final_playlist_data.append({
+                    "channel_name": item['channel_name'],
+                    "logo": item['logo'],
+                    "stream_link": final_stream
+                })
+
+            # ব্রাউজার থেকে Edge-Cache-Cookie সংগ্রহ করা
+            cookies = await context.cookies()
+            for cookie in cookies:
+                if cookie["name"] == "Edge-Cache-Cookie":
+                    cookie_name = cookie["name"]
+                    cookie_value = cookie["value"]
+                    break
+
         except Exception as e:
-            print("⚠️ ডেটা পার্সিংয়ের সময় সমস্যা হয়েছে:", e)
+            print("মূল ব্রাউজার ত্রুটি:", e)
+        finally:
+            await browser.close()
 
-        if not channels_info:
-            print("❌ কোনো চ্যানেল লিস্ট এক্সট্রাক্ট করা সম্ভব হয়নি।")
-            return
+    if not cookie_value:
+        print("⚠️ সতর্কবার্তা: সরাসরি Edge-Cache-Cookie পাওয়া যায়নি...")
 
-        print(f"✅ সফলভাবে {len(channels_info)} টি চ্যানেলের তথ্য সংগ্রহ করা হয়েছে। M3U ফাইল তৈরি হচ্ছে...")
+    print(f"✅ ফাইল তৈরি করা হচ্ছে...")
 
-        # কুকি থেকে Edge-Cache-Cookie আলাদা করা
-        cookie_name = "Edge-Cache-Cookie"
-        cookie_value = ""
-        for item in SAVED_COOKIES.split("; "):
-            if item.startswith("Edge-Cache-Cookie="):
-                cookie_value = item.split("=", 1)[1]
-                break
+    # M3U ফাইল তৈরি করা
+    m3u_content = "#EXTM3U\n"
+    for item in final_playlist_data:
+        cookie_string = f"{cookie_name}={cookie_value}" if cookie_value else "Edge-Cache-Cookie="
+        
+        m3u_content += f'\n#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="{item["logo"]}", {item["channel_name"]}\n'
+        m3u_content += f"{item['stream_link']}\n"
+        m3u_content += f"#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)\n"
+        m3u_content += f'#EXTHTTP:{{"cookie":"{cookie_string}"}}\n'
 
-        m3u_content = "#EXTM3U\n"
-        for item in channels_info:
-            cookie_string = f"{cookie_name}={cookie_value}" if cookie_value else "Edge-Cache-Cookie="
-            
-            m3u_content += f'\n#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="{item["logo"]}", {item["channel_name"]}\n'
-            m3u_content += f"{item['watch_url']}\n"
-            m3u_content += f"#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)\n"
-            m3u_content += f'#EXTHTTP:{{"cookie":"{cookie_string}"}}\n'
+    with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
+        f.write(m3u_content)
 
-        with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
-            f.write(m3u_content)
-
-        print(f"🎉 কাজ সম্পূর্ণ! '{M3U_FILE_NAME}' সফলভাবে আপডেট হয়ে গেছে।")
-
-    except Exception as e:
-        print("❌ এক্সিকিউশনে ত্রুটি দেখা দিয়েছে:", e)
+    print(f"🎉 সফলভাবে M3U প্লেলিস্ট তৈরি হয়েছে!")
 
 if __name__ == "__main__":
-    generate_playlist_via_api()
+    asyncio.run(generate_proper_playlist())
