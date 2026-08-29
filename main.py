@@ -19,7 +19,6 @@ async def generate_proper_playlist():
     cookie_value = ""
     
     async with async_playwright() as p:
-        # অ্যান্টি-বট ডিটেকশন এড়াতে কিছু এক্সট্রা আর্গুমেন্ট যোগ করা হয়েছে
         browser = await p.chromium.launch(
             headless=True,
             args=["--disable-blink-features=AutomationControlled", "--no-sandbox"]
@@ -135,11 +134,11 @@ async def generate_proper_playlist():
             try:
                 new_page = await context.new_page()
                 
-                # রিকোয়েস্ট ইন্টারসেপ্ট করার পাশাপাশি ভিডিও সোর্স ট্যাগ ট্র্যাক করা
                 def handle_request(req):
                     nonlocal stream_link
                     url = req.url
-                    if any(ext in url for ext in [".m3u8", "playlist", "manifest", ".mpd", "live/"]);
+                    # সেমিকolon এখানে রিমুভ করা হয়েছে
+                    if any(ext in url for ext in [".m3u8", "playlist", "manifest", ".mpd", "live/"]):
                         stream_link = url
 
                 new_page.on("request", handle_request)
@@ -147,7 +146,6 @@ async def generate_proper_playlist():
                 
                 try:
                     await new_page.wait_for_selector("video", timeout=10000)
-                    # যদি নেটওয়ার্কে সরাসরি না ধরে, তবে ভিডিও এলিমেন্ট বা সোর্স থেকে খোঁজা
                     if not stream_link:
                         stream_link = await new_page.evaluate("() => { const v = document.querySelector('video'); return v ? v.src : ''; }")
                 except:
