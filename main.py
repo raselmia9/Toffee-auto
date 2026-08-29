@@ -7,7 +7,6 @@ M3U_FILE_NAME = "Toffee_Auto_Update.m3u"
 LOG_FILE_NAME = "login_status_log.txt"
 
 async def write_log(status_message):
-    """লগইন স্ট্যাটাস বা সমস্যা একটি আলাদা টেক্সট ফাইলে লেখার জন্য"""
     with open(LOG_FILE_NAME, "w", encoding="utf-8") as f:
         f.write(status_message)
     print(f"📝 লগ স্ট্যাটাস সেভ হয়েছে: {LOG_FILE_NAME}")
@@ -20,13 +19,16 @@ async def generate_proper_playlist():
     cookie_value = ""
     
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        # অ্যান্টি-বট ডিটেকশন এড়াতে কিছু এক্সট্রা আর্গুমেন্ট যোগ করা হয়েছে
+        browser = await p.chromium.launch(
+            headless=True,
+            args=["--disable-blink-features=AutomationControlled", "--no-sandbox"]
+        )
         context = await browser.new_context(
-            user_agent="Toffee (Linux;Android 14)",
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             viewport={"width": 1280, "height": 800}
         )
         
-        # ১. কুকিজ ইনজেক্ট করা
         raw_cookies = "country=BD; state=DHK; allowed_countries=BD; device_id=6b70709f-6b1e-4f88-8b66-d4a0f8961f44; device_token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MDYzMjY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6ImRldmljZSJ9.U8zNM7bHNlUWvzYxNDr9iBAkOZju4AXMLgAxsE2F3CUsAHwJtl5jsDLWUAzs8XfO1WDzH2Lm2RiYt1eZsdYqbw; device_refresh_token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTgwMzc4MTY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoicmVmcmVzaCIsInR5cGUiOiJkZXZpY2UifQ.JJdo1lVnCVZXiL3OWoMkQVIRdIKSpFggReieJR4IInysnfvBrKO1DlVZqCwvQK9uoVKv6-xjc_lC_2PJ2FBEYQ; _fbp=fb.1.1788002900646.16103863163339320; WZRK_G=84c0c3d472a84f1ab2797ae369aba48f; _gcl_au=1.1.428714697.1788002903; _ga=GA1.1.1128668039.1788002902; mp_6019860d585d6c9cc82edba9d456e36c_mixpanel=%7B%22distinct_id%22%3A%22fde9f827-6374-494a-8b08-c75584f8c625%22%2C%22%24device_id%22%3A%224ea986bc-3b4f-4285-beea-044f3d3ae6b9%22%2C%22%24initial_referrer%22%3A%22%24direct%22%2C%22%24initial_referring_domain%22%3A%22%24direct%22%2C%22__mps%22%3A%7B%7D%2C%22__mpso%22%3A%7B%22%24initial_referrer%22%3A%22%24direct%22%2C%22%24initial_referring_domain%22%3A%22%24direct%22%7D%2C%22__mpus%22%3A%7B%7D%2C%22__mpa%22%3A%7B%7D%2C%22__mpu%22%3A%7B%7D%2C%22__mpr%22%3A%5B%5D%2C%22__mpap%22%3A%5B%5D%2C%22%24user_id%22%3A%22fde9f827-6374-494a-8b08-c75584f8c625%22%7D; WZRK_S_R57-668-777Z=%7B%22p%22%3A1%2C%22s%22%3A1788005444%2C%22t%22%3A1788005446%7D; _ga_02M4D9SN5F=GS2.1.s1788002902$o1$g1$t1788005446$j60$l0$h540491668"
         cookie_list = []
         for item in raw_cookies.split("; "):
@@ -42,7 +44,6 @@ async def generate_proper_playlist():
         
         page = await context.new_page()
         
-        # ২. লোকাল স্টোরেজ সেট আপ
         await page.goto("https://toffeelive.com/en", timeout=60000)
         
         local_storage_data = {
@@ -57,7 +58,7 @@ async def generate_proper_playlist():
             "WZRK_META": "{\"useIP\":true,\"ps\":1788002899,\"cs\":1788005444,\"sc\":2}",
             "WZRK_CAMP_G": "{\"84c0c3d472a84f1ab2797ae369aba48f\":{\"woc\":{},\"wndoc\":{},\"wi\":{},\"wp\":{},\"wsc\":0,\"wndsc\":0}}",
             "_gcl_ls": "{\"schema\":\"gcl\",\"version\":1,\"gcl_ctr\":{\"value\":{\"value\":0,\"timeouts\":0,\"errors\":0,\"eopCount\":0,\"creationTimeMs\":1788002902572},\"expires\":1795778902572}}",
-            "auth_session": "{\"access\":\"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MTg5MTIwMSwiaWF0IjoxNzg4MDAzMjAxLCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6IjBiYTNhN2VjLWEyMzktNDdkYi05YWYwLTBhOWNiZGM4MWMwZF8xNzg4MDAzMjAxIiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiYWEzOGU4ZWYtNTI5MC00ZTllLThhNDgtMGYyNjNkYzVjN2IyIiwic19pZCI6ImZkZTlmODI3LTYzNzQtNDk0YS04YjA4LWM3NTU4NGY4YzYyNSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6InN1YnNjcmliZXIifQ.QLavBGDD0ndcLpDF_XpZV-U6zAcBTOyIQfrkNBhh-DWnM8hTVhr6-kLqvbvSi5cW2cq9kVLt0iRex8QVAfBuOQ\",\"refresh\":\"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTgwMzU1NTIwMSwiaWF0IjoxNzg4MDAzMjAxLCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6IjBiYTNhN2VjLWEyMzktNDdkYi05YWYwLTBhOWNiZGM4MWMwZF8xNzg4MDAzMjAxIiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiYWEzOGU4ZWYtNTI5MC00ZTllLThhNDgtMGYyNjNkYzVjN2IyIiwic19pZCI6ImZkZTlmODI3LTYzNzQtNDk0YS04YjA4LWM3NTU4NGY4YzYyNSIsInRva2VuIjoicmVmcmVzaCIsInR5cGUiOiJzdWJzY3JpYmVyIn0.CiC_kVLQDANqCY-RiRiQqdI9EY_7nRY9xPXdeabAwkvpSqbxFglp8cXzx7YhRtZi6U72JMwnCQJqg8wIjzmpgQ\",\"accessExpiry\":1791891201,\"refreshExpiry\":1803555201}",
+            "auth_session": "{\"access\":\"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MTg5MTIwMSwiaWF0IjoxNzg4MDAzMjAxLCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6IjBiYTNhN2VjLWEyMzktNDdkYi05YWYwLTBhOWNiZGM4MWMwZF8xNzg4MDAzMjAxIiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiYWEzOGU4ZWYtNTI5MC00ZTllLThhNDgtMGYyNjNkYzVjN2IyIiwic19pZCI6ImZkZTlmODI3LTYzNzQtNDk0YS04YjA4LWM3NTU4NGY4YzYyNSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6InN1YnNjcmliZXIifQ.QLavBGDD0ndcLpDF_XpZV-U6zAcBTOyIQfrkNBhh-DWnM8hTVhr6-kLqvbvSi5cW2cq9kVLt0iRex8QVAfBuOQ\",\"refresh\":\"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTgwMzc1NiwiaWF0IjoxNzg4MDAzMjAxLCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6IjBiYTNhN2VjLWEyMzktNDdkYi05YWYwLTBhOWNiZGM4MWMwZF8xNzg4MDAzMjAxIiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiYWEzOGU4ZWYtNTI5MC00ZTllLThhNDgtMGYyNjNkYzVjN2IyIiwic19pZCI6ImZkZTlmODI3LTYzNzQtNDk0YS04YjA4LWM3NTU4NGY4YzYyNSIsInRva2VuIjoicmVmcmVzaCIsInR5cGUiOiJzdWJzY3JpYmVyIn0.CiC_kVLQDANqCY-RiRiQqdI9EY_7nRY9xPXdeabAwkvpSqbxFglp8cXzx7YhRtZi6U72JMwnCQJqg8wIjzmpgQ\",\"accessExpiry\":1791891201,\"refreshExpiry\":1803555201}",
             "WZRK_EV": "{\"wzrk_fetch\":[2,1788002898,1788005442],\"page_viewed\":[15,1788002899,1788005445],\"login\":[1,1788003200,1788003200],\"content_thumbnail_click\":[1,1788003896,1788003896],\"view_item_list\":[1,1788003899,1788003899]}",
             "lastExternalReferrerTime": "1788005444446",
             "WZRK_BLOCK": "false",
@@ -69,31 +70,28 @@ async def generate_proper_playlist():
 
         await page.evaluate("(data) => { for (let k in data) { localStorage.setItem(k, data[k]); } }", local_storage_data)
         
-        # ৩. মেইন লাইভ পেজে যাওয়া এবং লগইন স্ট্যাটাস চেক করা
         main_url = "https://toffeelive.com/en/live"
         try:
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(6000)
 
-            # লগইন ভ্যালিডেশন চেক: লোকাল স্টোরেজে auth_session আছে কি না এবং তা সাবস্ক্রাইবার কি না যাচাই
             auth_check = await page.evaluate("() => localStorage.getItem('auth_session')")
             if auth_check and "subscriber" in auth_check:
                 log_msg = "SUCCESS: Login Successful! Premium subscription session is active."
                 print(f"✅ {log_msg}")
             else:
-                log_msg = "WARNING: Session injected, but subscriber status could not be fully verified in LocalStorage."
+                log_msg = "WARNING: Session injected, but subscriber status could not be fully verified."
                 print(f"⚠️ {log_msg}")
             
             await write_log(log_msg)
 
         except Exception as e:
-            err_msg = f"ERROR: Failed during login verification or page load. Details: {str(e)}"
+            err_msg = f"ERROR: Failed during login verification. Details: {str(e)}"
             print(f"❌ {err_msg}")
             await write_log(err_msg)
             await browser.close()
             return
 
-        # ৪. চ্যানেল স্ক্যানিং এবং লিংক ক্যাপচার অংশ
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight/2);")
         await page.wait_for_timeout(4000)
 
@@ -137,21 +135,25 @@ async def generate_proper_playlist():
             try:
                 new_page = await context.new_page()
                 
-                # উন্নত লিংক ইন্টারসেপশন (m3u8, manifest বা mpd লিংক ধরার জন্য)
+                # রিকোয়েস্ট ইন্টারসেপ্ট করার পাশাপাশি ভিডিও সোর্স ট্যাগ ট্র্যাক করা
                 def handle_request(req):
                     nonlocal stream_link
                     url = req.url
-                    if any(ext in url for ext in [".m3u8", "playlist", "manifest", ".mpd"]):
+                    if any(ext in url for ext in [".m3u8", "playlist", "manifest", ".mpd", "live/"]);
                         stream_link = url
 
                 new_page.on("request", handle_request)
                 await new_page.goto(item['watch_url'], timeout=30000)
                 
                 try:
-                    await new_page.wait_for_selector("video", timeout=8000)
+                    await new_page.wait_for_selector("video", timeout=10000)
+                    # যদি নেটওয়ার্কে সরাসরি না ধরে, তবে ভিডিও এলিমেন্ট বা সোর্স থেকে খোঁজা
+                    if not stream_link:
+                        stream_link = await new_page.evaluate("() => { const v = document.querySelector('video'); return v ? v.src : ''; }")
                 except:
                     pass
-                await new_page.wait_for_timeout(4000)
+                
+                await new_page.wait_for_timeout(3000)
                 await new_page.close()
             except Exception as e:
                 print(f"লিংক সংগ্রহে সমস্যা ({item['channel_name']}):", e)
@@ -186,7 +188,7 @@ async def generate_proper_playlist():
     with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
         f.write(m3u_content)
 
-    print(f"🎉 সফলভাবে প্রিমিয়াম চ্যানেলসহ M3U প্লেলিস্ট তৈরি হয়েছে!")
+    print(f"🎉 সফলভাবে প্লেলিস্ট আপডেট সম্পন্ন হয়েছে!")
 
 if __name__ == "__main__":
     asyncio.run(generate_proper_playlist())
