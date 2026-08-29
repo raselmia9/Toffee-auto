@@ -2,14 +2,14 @@ name: Update Toffee Playlist
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # প্রতি ৬ ঘণ্টা পর পর রান হবে (আপনার ইচ্ছামতো পরিবর্তন করতে পারেন)
+    - cron: '0 */6 * * *' # প্রতি ৬ ঘণ্টা পর পর রান হবে
   workflow_dispatch:
 
 jobs:
   update:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # গিটহাবে ফাইল কমিট ও পুশ করার অনুমতি নিশ্চিত করে
+      contents: write # গিটহাবে ফাইল কমিট ও পুশ করার অনুমতি দেয়
 
     steps:
       - name: Checkout Repository
