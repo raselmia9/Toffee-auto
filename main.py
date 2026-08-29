@@ -12,21 +12,35 @@ async def generate_proper_playlist():
     cookie_value = ""
     
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)
+        # গিটহাব অ্যাকশন বা লিনাক্স সার্ভারের জন্য হেডলেস মোড
+        browser = await p.chromium.launch(
+            headless=True,
+            args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+        )
         context = await browser.new_context(
-            user_agent="Toffee (Linux;Android 14)"
+            user_agent="Toffee (Linux;Android 14)",
+            viewport={"width": 1280, "height": 800}
         )
         
         page = await context.new_page()
         
+        # পারফরম্যান্স বাড়ানোর জন্য ছবি, ফন্ট এবং স্টাইলশিট ব্লক করা (দ্রুত লোড হওয়ার জন্য)
+        await page.route("**/*", lambda route: route.continue_() if route.request.resource_type not in ["image", "media", "font", "stylesheet"] else route.abort())
+
         try:
             main_url = "https://toffeelive.com/en/live"
             await page.goto(main_url, timeout=60000)
-            await page.wait_for_timeout(8000)
+            await page.wait_for_timeout(5000)
 
-            # পেজ স্ক্রল করে সব চ্যানেল লোড করা
-            await page.evaluate("window.scrollTo(0, document.body.scrollHeight/2);")
-            await page.wait_for_timeout(4000)
+            # পেজের একদম নিچ পর্যন্ত স্ক্রোল করে সব চ্যানেল লোড করা নিশ্চিত করা
+            previous_height = await page.evaluate("document.body.scrollHeight")
+            while True:
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+                await page.wait_for_timeout(2000)
+                current_height = await page.evaluate("document.body.scrollHeight")
+                if current_height == previous_height:
+                    break
+                previous_height = current_height
 
             channel_cards = await page.locator("a[href*='/watch/']").all()
             
@@ -63,7 +77,7 @@ async def generate_proper_playlist():
             print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক ও কুকি সংগ্রহ করা হচ্ছে...")
 
             final_playlist_data = []
-            for idx, item in enumerate(channels_info):
+            for item in channels_info:
                 stream_link = ""
                 try:
                     new_page = await context.new_page()
@@ -75,8 +89,8 @@ async def generate_proper_playlist():
                             stream_link = url
 
                     new_page.on("request", intercept)
-                    await new_page.goto(item['watch_url'], timeout=30000)
-                    await new_page.wait_for_timeout(5000)
+                    await new_page.goto(item['watch_url'], timeout=25000)
+                    await new_page.wait_for_timeout(3000)
                     await new_page.close()
                 except Exception as e:
                     print(f"লিংক সংগ্রহে সমস্যা ({item['channel_name']}):", e)
