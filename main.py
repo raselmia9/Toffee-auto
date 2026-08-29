@@ -5,7 +5,6 @@ from playwright.async_api import async_playwright
 
 M3U_FILE_NAME = "Toffee_Auto_Update.m3u"
 
-# আপনার দেওয়া লগইন সেশন এবং কুকি ডেটা
 SAVED_COOKIES = "country=BD; state=DHK; allowed_countries=BD; device_id=6b70709f-6b1e-4f88-8b66-d4a0f8961f44; device_token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MDYzMjY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6ImRldmljZSJ9.U8zNM7bHNlUWvzYxNDr9iBAkOZju4AXMLgAxsE2F3CUsAHwJtl5jsDLWUAzs8XfO1WDzH2Lm2RiYt1eZsdYqbw; device_refresh_token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTgwMzc4MTY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoicmVmcmVzaCIsInR5cGUiOiJkZXZpY2UifQ.JJdo1lVnCVZXiL3OWoMkQVIRdIKSpFggReieJR4IInysnfvBrKO1DlVZqCwvQK9uoVKv6-xjc_lC_2PJ2FBEYQ; _fbp=fb.1.1788002900646.16103863163339320; WZRK_G=84c0c3d472a84f1ab2797ae369aba48f; _gcl_au=1.1.428714697.1788002903; _ga=GA1.1.1128668039.1788002902; _ga_02M4D9SN5F=GS2.1.s1788023984$o2$g0$t1788023984$j60$l0$h1763188672"
 
 SAVED_LOCAL_STORAGE = {
@@ -20,7 +19,7 @@ SAVED_LOCAL_STORAGE = {
     "WZRK_META": '{"useIP":true,"ps":1788005444,"cs":1788023983,"sc":3}',
     "WZRK_CAMP_G": '{"84c0c3d472a84f1ab2797ae369aba48f":{"woc":{},"wndoc":{},"wi":{},"wp":{},"wsc":0,"wndsc":0}}',
     "_gcl_ls": '{"schema":"gcl","version":1,"gcl_ctr":{"value":{"value":0,"timeouts":0,"errors":0,"eopCount":0,"creationTimeMs":1788002902572},"expires":1795778902572}}',
-    "auth_session": '{"access":"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MTg5MTIwMSwiaWF0IjoxNzg4MDAzMjAxLCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6IjBiYTNhN2VjLWEyMzktNDdkYi05YWYwLTBhOWNiZGM4MWMwZF8xNzg4MDAzMjAxIiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiYWEzOGU4ZWYtNTI5MC00ZTllLThhNDgtMGYyNjNkYzVjN2IyIiwic19pZCI6ImZkZTlmODI3LTYzNzQtNDk0YS04YjA4LWM3NTU4NGY4YzYyNSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6InN1YnNjcmliZXIifQ.QLavBGDD0ndcLpDF_XpZV-U6zAcBTOyIQfrkNBhh-DWnM8hTVhr6-kLqvbvSi5cW2cq9kVLt0iRex8QVAfBuOQ","refresh":"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTgwMzU1NTIwMSwiaWF0IjoxNzg4MDAzMjAxLCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6IjBiYTNhN2VjLWEyMzktNDdkYi05YWYwLTBhOWNiZGM4MWMwZF8xNzg4MDAzMjAxIiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiYWEzOGU4ZWYtNTI5MC00ZTllLThhNDgtMGYyNjNkYzVjN2IyIiwic19pZCI6ImZkZTlmODI3LTYzNzQtNDk0YS04YjA4LWM3NTU4NGY4YzYyNSIsInRva2VuIjoicmVmcmVzaCIsInR5cetypeIjoic3Vic2NyaWJlciJ9.CiC_kVLQDANqCY-RiRiQqdI9EY_7nRY9xPXdeabAwkvpSqbxFglp8cXzx7YhRtZi6U72JMwnCQJqg8wIjzmpgQ","accessExpiry":1791891201,"refreshExpiry":1803555201}',
+    "auth_session": '{"access":"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MTg5MTIwMSwiaWF0IjoxNzg4MDAzMjAxLCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6IjBiYTNhN2VjLWEyMzktNDdkYi05YWYwLTBhOWNiZGM4MWMwZF8xNzg4MDAzMjAxIiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiYWEzOGU4ZWYtNTI5MC00ZTllLThhNDgtMGYyNjNkYzVjN2IyIiwic19pZCI6ImZkZTlmODI3LTYzNzQtNDk0YS04YjA4LWM3NTU4NGY4YzYyNSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6InN1YnNjcmliZXIifQ.QLavBGDD0ndcLpDF_XpZV-U6zAcBTOyIQfrkNBhh-DWnM8hTVhr6-kLqvbvSi5cW2cq9kVLt0iRex8QVAfBuOQ","refresh":"eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTgwMzU1NTIwMSwiaWF0IjoxNzg4MDAzMjAxLCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6IjBiYTNhN2VjLWEyMzktNDdkYi05YWYwLTBhOWNiZGM4MWMwZF8xNzg4MDAzMjAxIiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiYWEzOGU4ZWYtNTI5MC00ZTllLThhNDgtMGYyNjNkYzVjN2IyIiwic19pZCI6ImZkZTlmODI3LTYzNzQtNDk0YS04YjA4LWM3NTU4NGY4YzYyNSIsInRva2VuIjoicmVmcmVzaCIsInR5cGUiOiJzdWJzY3JpYmVyIn0.CiC_kVLQDANqCY-RiRiQqdI9EY_7nRY9xPXdeabAwkvpSqbxFglp8cXzx7YhRtZi6U72JMwnCQJqg8wIjzmpgQ","accessExpiry":1791891201,"refreshExpiry":1803555201}',
     "WZRK_BLOCK": "false",
     "WZRK_ACCOUNT_ID": '"R57-668-777Z"',
     "WZRK_PR": '{"Identity":"fde9f827-6374-494a-8b08-c75584f8c625","Phone":8801954102960,"tz":"GMT+0600"}',
@@ -28,7 +27,6 @@ SAVED_LOCAL_STORAGE = {
 }
 
 async def generate_proper_playlist():
-    # আলাদা একটি টেক্সট বক্স বা ফরম্যাটে লগইন স্ট্যাটাস আউটপุต প্রিন্ট করা
     print("=" * 60)
     print(" 🔐 TOFFEE LOGIN STATUS REPORT")
     print("=" * 60)
@@ -54,7 +52,6 @@ async def generate_proper_playlist():
             viewport={"width": 1280, "height": 800}
         )
         
-        # ব্রাউজারে কুকিগুলো পার্স করে সেট করা
         parsed_cookies = []
         for item in SAVED_COOKIES.split("; "):
             if "=" in item:
@@ -69,8 +66,8 @@ async def generate_proper_playlist():
         
         page = await context.new_page()
         
-        # লোকাল স্টোরেজ ইনজেক্ট করার জন্য ডোমেনে যাওয়া ও সেট করা
-        await page.goto("https://toffeelive.com", timeout=30000)
+        # প্রথমে মূল সাইটে গিয়ে লোকাল স্টোরেজ সেট করা এবং সময় দেওয়া
+        await page.goto("https://toffeelive.com/en", timeout=40000)
         await page.evaluate(f"""() => {{
             const storageData = {json.dumps(SAVED_LOCAL_STORAGE)};
             for (const [key, value] of Object.entries(storageData)) {{
@@ -78,19 +75,20 @@ async def generate_proper_playlist():
             }}
         }}""")
         
-        # পারফরম্যান্স বাড়ানোর জন্য ছবি, ফন্ট এবং স্টাইলশিট ব্লক করা
-        await page.route("**/*", lambda route: route.continue_() if route.request.resource_type not in ["image", "media", "font", "stylesheet"] else route.abort())
+        # সেশন কার্যকর হওয়ার জন্য পর্যাপ্ত সময় অপেক্ষা
+        await page.reload()
+        await page.wait_for_timeout(6000)
 
         try:
             main_url = "https://toffeelive.com/en/live"
             await page.goto(main_url, timeout=60000)
-            await page.wait_for_timeout(5000)
+            await page.wait_for_timeout(7000)
 
-            # পেজের একদম নিচ পর্যন্ত স্ক্রোল করে সব চ্যানেল লোড করা
+            # পেজ স্ক্রল করে সব চ্যানেল লোড করা নিশ্চিত করা
             previous_height = await page.evaluate("document.body.scrollHeight")
             while True:
                 await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
-                await page.wait_for_timeout(2000)
+                await page.wait_for_timeout(3000)
                 current_height = await page.evaluate("document.body.scrollHeight")
                 if current_height == previous_height:
                     break
@@ -128,7 +126,7 @@ async def generate_proper_playlist():
                         "watch_url": watch_url
                     })
 
-            print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। লগইন سেশন সহ স্ট্রিম লিংক সংগ্রহ করা হচ্ছে...")
+            print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক ও কুকি সংগ্রহ করা হচ্ছে...")
 
             final_playlist_data = []
             for item in channels_info:
@@ -143,21 +141,21 @@ async def generate_proper_playlist():
                             stream_link = url
 
                     new_page.on("request", intercept)
-                    await new_page.goto(item['watch_url'], timeout=25000)
-                    await new_page.wait_for_timeout(3000)
+                    await new_page.goto(item['watch_url'], timeout=30000)
+                    await new_page.wait_for_timeout(5000)
                     await new_page.close()
                 except Exception as e:
                     print(f"লিংক সংগ্রহে সমস্যা ({item['channel_name']}):", e)
 
-                # শুধু যেগুলোতে আসল স্ট্রিম লিংক পাওয়া যাবে সেগুলোই রাখা বা ফলব্যাক হ্যান্ডেল করা
-                if stream_link:
-                    final_playlist_data.append({
-                        "channel_name": item['channel_name'],
-                        "logo": item['logo'],
-                        "stream_link": stream_link
-                    })
+                # স্ট্রিম লিংক না পেলে ফলব্যাক হিসেবে ওয়াচ ইউআরএল ব্যবহার করা যাতে কোনো চ্যানেল মিস না হয়
+                final_stream = stream_link if stream_link else item['watch_url']
+                
+                final_playlist_data.append({
+                    "channel_name": item['channel_name'],
+                    "logo": item['logo'],
+                    "stream_link": final_stream
+                })
 
-            # ব্রাউজার থেকে Edge-Cache-Cookie সংগ্রহ করা
             cookies = await context.cookies()
             for cookie in cookies:
                 if cookie["name"] == "Edge-Cache-Cookie":
@@ -170,9 +168,8 @@ async def generate_proper_playlist():
         finally:
             await browser.close()
 
-    print(f"✅ কার্যকরী প্লেলিস্ট ফাইল তৈরি করা হচ্ছে...")
+    print(f"✅ ফাইল তৈরি করা হচ্ছে...")
 
-    # M3U ফাইল তৈরি করা (যেখানে শুধু ভ্যালিড স্ট্রিম লিংকগুলো যুক্ত হবে)
     m3u_content = "#EXTM3U\n"
     for item in final_playlist_data:
         cookie_string = f"{cookie_name}={cookie_value}" if cookie_value else "Edge-Cache-Cookie="
@@ -185,7 +182,7 @@ async def generate_proper_playlist():
     with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
         f.write(m3u_content)
 
-    print(f"🎉 সফলভাবে লগইন কুকি সহ M3U প্লেলিস্ট তৈরি হয়েছে!")
+    print(f"🎉 সফলভাবে M3U প্লেলিস্ট তৈরি হয়েছে!")
 
 if __name__ == "__main__":
     asyncio.run(generate_proper_playlist())
