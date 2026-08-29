@@ -1,17 +1,18 @@
-name: Update Toffee M3U
+name: Update Toffee Playlist
 
 on:
   schedule:
-    - cron: '0 */2 * * *'
+    - cron: '0 */6 * * *' # প্রতি ৬ ঘণ্টা পর পর রান হবে (আপনার ইচ্ছামতো পরিবর্তন করতে পারেন)
   workflow_dispatch:
 
 jobs:
-  update-playlist:
+  update:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write # গিটহাবে ফাইল কমিট ও পুশ করার অনুমতি নিশ্চিত করে
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -19,20 +20,23 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install playwright
           playwright install chromium
+          playwright install-deps chromium
 
-      - name: Run Python script
-        run: python main.py
+      - name: Run Script to Generate M3U
+        run: python Toffee_Auto_Update.py
 
-      - name: Commit and push changes
+      - name: Commit and Push Changes
         run: |
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+          
+          # রিমোট রিপোজিটরির সাথে লেটেস্ট চেঞ্জেস সিঙ্ক করে নেওয়া যাতে কনফ্লিক্ট না হয়
+          git pull --rebase origin main || git pull --rebase origin master
+          
           git add Toffee_Auto_Update.m3u
-          git diff --staged --quiet || git commit -m "Auto-update Toffee M3U cookies"
-          git push origin main
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update Toffee M3U playlist [skip ci]" && git push)
