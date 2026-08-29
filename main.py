@@ -35,7 +35,7 @@ async def generate_proper_playlist():
         
         page = await context.new_page()
         
-        # ২. লোকাল স্টোরেজ (LocalStorage) ডেটা সেট করার জন্য ডোমেনে একবার যাওয়া
+        # ২. লোকাল স্টোরেজ সেট করার জন্য ডোমেনে যাওয়া
         await page.goto("https://toffeelive.com/en", timeout=60000)
         
         local_storage_data = {
@@ -60,17 +60,16 @@ async def generate_proper_playlist():
             "WZRK_G": "\"84c0c3d472a84f1ab2797ae369aba48f\""
         }
 
-        # ব্রাউজারে লোকাল স্টোরেজ ডাটা সেট করা
-        await page.evaluate(lambda data: [localStorage.setItem(k, v) for k, v in data.items()], local_storage_data)
+        # নিরাপদ উপায়ে লোকাল স্টোরেজ ডাটা ব্রাউজারে পাস করা
+        await page.evaluate("(data) => { for (let k in data) { localStorage.setItem(k, data[k]); } }", local_storage_data)
         
-        # ৩. এবার মেইন লাইভ পেজে রিফ্রেশ বা নেভিগেট করা (লগইন স্ট্যাটাস অ্যাপ্লাই হওয়ার জন্য)
+        # ৩. মূল লাইভ পেজে যাওয়া
         main_url = "https://toffeelive.com/en/live"
         await page.goto(main_url, timeout=60000)
         await page.wait_for_timeout(6000)
 
-        print("✅ লগইন সেশন সফলভাবে সক্রিয় হয়েছে! চ্যানেল স্ক্যান করা হচ্ছে...")
+        print("✅ লগইন সেশন সক্রিয় হয়েছে! চ্যানেল স্ক্যান করা হচ্ছে...")
 
-        # পেজ স্ক্রল করে সব চ্যানেল লোড করা
         await page.evaluate("window.scrollTo(0, document.body.scrollHeight/2);")
         await page.wait_for_timeout(4000)
 
@@ -106,7 +105,7 @@ async def generate_proper_playlist():
                     "watch_url": watch_url
                 })
 
-        print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। প্রিমিয়াম চ্যানেলের লিংক ক্যাপচার করা হচ্ছে...")
+        print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক ক্যাপচার করা হচ্ছে...")
 
         final_playlist_data = []
         for item in channels_info:
@@ -140,7 +139,6 @@ async def generate_proper_playlist():
                 "stream_link": final_stream
             })
 
-        # কুকি থেকে Edge-Cache-Cookie সংগ্রহ করা
         cookies = await context.cookies()
         for cookie in cookies:
             if cookie["name"] == "Edge-Cache-Cookie":
@@ -151,7 +149,6 @@ async def generate_proper_playlist():
 
     print(f"✅ M3U ফাইল তৈরি করা হচ্ছে...")
 
-    # M3U প্লেলিস্ট ফাইল তৈরি করা
     m3u_content = "#EXTM3U\n"
     for item in final_playlist_data:
         cookie_string = f"{cookie_name}={cookie_value}" if cookie_value else "Edge-Cache-Cookie="
