@@ -33,10 +33,8 @@ async def generate_proper_playlist():
     print(" Status     : SUCCESSFUL (REGISTERED USER)")
     print(" User ID    : fde9f827-6374-494a-8b08-c75584f8c625")
     print(" Phone No   : 8801954102960")
-    print(" Auth Token : Active & Injected Successfully")
+    print(" Auth Token : Injected via Native Init Script")
     print("=" * 60)
-    
-    print("\nটফি সাইট থেকে চ্যানেলগুলোর তালিকা সংগ্রহ করা হচ্ছে...")
     
     channels_info = []
     cookie_name = ""
@@ -52,6 +50,7 @@ async def generate_proper_playlist():
             viewport={"width": 1280, "height": 800}
         )
         
+        # ১. কুকি সেট করা
         parsed_cookies = []
         for item in SAVED_COOKIES.split("; "):
             if "=" in item:
@@ -64,37 +63,35 @@ async def generate_proper_playlist():
                 })
         await context.add_cookies(parsed_cookies)
         
-        page = await context.new_page()
-        
-        # প্রথমে মূল সাইটে গিয়ে লোকাল স্টোরেজ সেট করা এবং সময় দেওয়া
-        await page.goto("https://toffeelive.com/en", timeout=40000)
-        await page.evaluate(f"""() => {{
-            const storageData = {json.dumps(SAVED_LOCAL_STORAGE)};
+        # ২. ব্রাউজার পেজ লোড হওয়ার আগেই লোকাল স্টোরেজ ইনজেক্ট করার স্ক্রিপ্ট যুক্ত করা
+        storage_json = json.dumps(SAVED_LOCAL_STORAGE)
+        await context.add_init_script(f"""
+            const storageData = {storage_json};
             for (const [key, value] of Object.entries(storageData)) {{
                 localStorage.setItem(key, value);
             }}
-        }}""")
+        """)
         
-        # সেশন কার্যকর হওয়ার জন্য পর্যাপ্ত সময় অপেক্ষা
-        await page.reload()
-        await page.wait_for_timeout(6000)
+        page = await context.new_page()
 
         try:
+            print("\nটফি লাইভ পেজ ব্রাউজ করা হচ্ছে...")
             main_url = "https://toffeelive.com/en/live"
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(7000)
 
-            # পেজ স্ক্রল করে সব চ্যানেল লোড করা নিশ্চিত করা
+            # পেজ স্ক্রল করে সব চ্যানেল লোড করা
             previous_height = await page.evaluate("document.body.scrollHeight")
             while True:
                 await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
-                await page.wait_for_timeout(3000)
+                await page.wait_for_timeout(2500)
                 current_height = await page.evaluate("document.body.scrollHeight")
                 if current_height == previous_height:
                     break
                 previous_height = current_height
 
             channel_cards = await page.locator("a[href*='/watch/']").all()
+            print(f"মোট চ্যানেল কার্ড পাওয়া গেছে: {len(channel_cards)} টি")
             
             seen_links = set()
             for card in channel_cards:
@@ -126,7 +123,7 @@ async def generate_proper_playlist():
                         "watch_url": watch_url
                     })
 
-            print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক ও কুকি সংগ্রহ করা হচ্ছে...")
+            print(f"চ্যানেলের তালিকা থেকে স্ট্রিম লিংক সংগ্রহ শুরু হচ্ছে...")
 
             final_playlist_data = []
             for item in channels_info:
@@ -141,13 +138,13 @@ async def generate_proper_playlist():
                             stream_link = url
 
                     new_page.on("request", intercept)
-                    await new_page.goto(item['watch_url'], timeout=30000)
-                    await new_page.wait_for_timeout(5000)
+                    await new_page.goto(item['watch_url'], timeout=25000)
+                    await new_page.wait_for_timeout(4000)
                     await new_page.close()
                 except Exception as e:
-                    print(f"লিংক সংগ্রহে সমস্যা ({item['channel_name']}):", e)
+                    pass
 
-                # স্ট্রিম লিংক না পেলে ফলব্যাক হিসেবে ওয়াচ ইউআরএল ব্যবহার করা যাতে কোনো চ্যানেল মিস না হয়
+                # স্ট্রিম লিংক বা ফলব্যাক ইউআরএল যুক্ত করা
                 final_stream = stream_link if stream_link else item['watch_url']
                 
                 final_playlist_data.append({
@@ -164,11 +161,11 @@ async def generate_proper_playlist():
                     break
 
         except Exception as e:
-            print("মূল ব্রাউজার ত্রুটি:", e)
+            print("ব্রাউজার কার্যক্রমে ত্রুটি:", e)
         finally:
             await browser.close()
 
-    print(f"✅ ফাইল তৈরি করা হচ্ছে...")
+    print(f"✅ M3U প্লেলিস্ট ফাইল প্রসেস ও রাইট করা হচ্ছে...")
 
     m3u_content = "#EXTM3U\n"
     for item in final_playlist_data:
@@ -182,7 +179,7 @@ async def generate_proper_playlist():
     with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
         f.write(m3u_content)
 
-    print(f"🎉 সফলভাবে M3U প্লেলিস্ট তৈরি হয়েছে!")
+    print(f"🎉 কাজ সম্পূর্ণ! M3U প্লেলিস্ট আপডেট হয়ে গেছে।")
 
 if __name__ == "__main__":
     asyncio.run(generate_proper_playlist())
