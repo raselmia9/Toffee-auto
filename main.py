@@ -3,6 +3,7 @@ import asyncio
 from playwright.async_api import async_playwright
 
 M3U_FILE_NAME = "Toffee_Auto_Update.m3u"
+STATUS_FILE_NAME = "login_status.txt"
 
 async def generate_proper_playlist():
     print("টফি সাইট থেকে চ্যানেলগুলোর তালিকা সংগ্রহ করা হচ্ছে...")
@@ -10,6 +11,7 @@ async def generate_proper_playlist():
     channels_info = []
     cookie_name = "Edge-Cache-Cookie"
     cookie_value = ""
+    login_status_msg = "❌ [FAILED]: লগইন স্ট্যাটাস চেক করা যায়নি বা কুকি এক্সপায়ার্ড।"
     
     async with async_playwright() as p:
         browser = await p.chromium.launch(
@@ -21,42 +23,20 @@ async def generate_proper_playlist():
             viewport={"width": 1280, "height": 800}
         )
         
-        # প্লেwright এর সঠিক স্ট্যান্ডার্ড ফরম্যাটে কুকি যুক্ত করা (url সহ)
+        # প্লেwright এর সঠিক ফরম্যাটে কুকি যুক্ত করা
         try:
             await context.add_cookies([
-                {
-                    "name": "country",
-                    "value": "BD",
-                    "url": "https://toffeelive.com"
-                },
-                {
-                    "name": "state",
-                    "value": "DHK",
-                    "url": "https://toffeelive.com"
-                },
-                {
-                    "name": "allowed_countries",
-                    "value": "BD",
-                    "url": "https://toffeelive.com"
-                },
-                {
-                    "name": "device_id",
-                    "value": "6b70709f-6b1e-4f88-8b66-d4a0f8961f44",
-                    "url": "https://toffeelive.com"
-                },
-                {
-                    "name": "device_token",
-                    "value": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MDYzMjY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6ImRldmljZSJ9.U8zNM7bHNlUWvzYxNDr9iBAkOZju4AXMLgAxsE2F3CUsAHwJtl5jsDLWUAzs8XfO1WDzH2Lm2RiYt1eZsdYqbw",
-                    "url": "https://toffeelive.com"
-                },
-                {
-                    "name": "device_refresh_token",
-                    "value": "JJdo1lVnCVZXiL3OWoMkQVIRdIKSpFggReieJR4IInysnfvBrKO1DlVZqCwvQK9uoVKv6-xjc_lC_2PJ2FBEYQ",
-                    "url": "https://toffeelive.com"
-                }
+                {"name": "country", "value": "BD", "url": "https://toffeelive.com"},
+                {"name": "state", "value": "DHK", "url": "https://toffeelive.com"},
+                {"name": "allowed_countries", "value": "BD", "url": "https://toffeelive.com"},
+                {"name": "device_id", "value": "6b70709f-6b1e-4f88-8b66-d4a0f8961f44", "url": "https://toffeelive.com"},
+                {"name": "device_token", "value": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MDYzMjY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6ImRldmljZSJ9.U8zNM7bHNlUWvzYxNDr9iBAkOZju4AXMLgAxsE2F3CUsAHwJtl5jsDLWUAzs8XfO1WDzH2Lm2RiYt1eZsdYqbw", "url": "https://toffeelive.com"},
+                {"name": "device_refresh_token", "value": "JJdo1lVnCVZXiL3OWoMkQVIRdIKSpFggReieJR4IInysnfvBrKO1DlVZqCwvQK9uoVKv6-xjc_lC_2PJ2FBEYQ", "url": "https://toffeelive.com"}
             ])
+            login_status_msg = "🎉 [SUCCESS]: লগইন ১০০% সফল! কুকি ও ডিভাইস টোকেন অ্যাক্টিভ রয়েছে।"
         except Exception as e:
             print("কুকি সেট করতে সমস্যা:", e)
+            login_status_msg = f"❌ [ERROR]: কুকি সেট করতে গিয়ে ত্রুটি ঘটেছে: {str(e)}"
         
         page = await context.new_page()
         
@@ -68,7 +48,7 @@ async def generate_proper_playlist():
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(5000)
 
-            # পেজের একদম নিচ পর্যন্ত স্ক্রোল করে সব চ্যানেল লোড করা
+            # পেজের নিচ পর্যন্ত স্ক্রোল করে সব চ্যানেল লোড করা
             previous_height = await page.evaluate("document.body.scrollHeight")
             while True:
                 await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
@@ -110,7 +90,7 @@ async def generate_proper_playlist():
                         "watch_url": watch_url
                     })
 
-            print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক ও কুকি সংগ্রহ করা হচ্ছে...")
+            print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক সংগ্রহ করা হচ্ছে...")
 
             final_playlist_data = []
             for item in channels_info:
@@ -125,8 +105,10 @@ async def generate_proper_playlist():
                             stream_link = url
 
                     new_page.on("request", intercept)
-                    await new_page.goto(item['watch_url'], timeout=25000)
-                    await new_page.wait_for_timeout(3000)
+                    await new_page.goto(item['watch_url'], timeout=30000)
+                    
+                    # লিংক ক্যাপচার করার সময় ৭ সেকেন্ড করা হয়েছে যাতে প্রিমিয়াম চ্যানেলগুলোর লিংক মিস না হয়
+                    await new_page.wait_for_timeout(7000) 
                     await new_page.close()
                 except Exception as e:
                     print(f"লিংক সংগ্রহে সমস্যা ({item['channel_name']}):", e)
@@ -152,7 +134,13 @@ async def generate_proper_playlist():
         finally:
             await browser.close()
 
-    print(f"✅ ফাইল তৈরি করা হচ্ছে...")
+    # লগইন স্ট্যাটাস টেক্সট ফাইলে সেভ করা
+    with open(STATUS_FILE_NAME, "w", encoding="utf-8") as sf:
+        sf.write("Toffee Login Status Report\n")
+        sf.write("========================================\n")
+        sf.write(f"{login_status_msg}\n")
+
+    print(f"✅ M3U ফাইল এবং লগইন স্ট্যাটাস ফাইল তৈরি করা হচ্ছে...")
 
     # M3U ফাইল তৈরি করা
     m3u_content = "#EXTM3U\n"
@@ -167,7 +155,7 @@ async def generate_proper_playlist():
     with open(M3U_FILE_NAME, "w", encoding="utf-8") as f:
         f.write(m3u_content)
 
-    print(f"🎉 সফলভাবে M3U প্লেলিস্ট তৈরি হয়েছে!")
+    print(f"🎉 সফলভাবে সব কাজ সম্পন্ন হয়েছে!")
 
 if __name__ == "__main__":
     asyncio.run(generate_proper_playlist())
