@@ -4,25 +4,14 @@ from playwright.async_api import async_playwright
 
 M3U_FILE_NAME = "Toffee_Auto_Update.m3u"
 
-# আপনার পরীক্ষিত সফল কুকি ও ডিভাইস টোকেন এখানে যুক্ত করা হলো
-SAVED_COOKIES = [
-    {"name": "country", "value": "BD", "domain": ".toffeelive.com", "path": "/"},
-    {"name": "state", "value": "DHK", "domain": ".toffeelive.com", "path": "/"},
-    {"name": "allowed_countries", "value": "BD", "domain": ".toffeelive.com", "path": "/"},
-    {"name": "device_id", "value": "6b70709f-6b1e-4f88-8b66-d4a0f8961f44", "domain": ".toffeelive.com", "path": "/"},
-    {"name": "device_token", "value": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MDYzMjY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6ImRldmljZSJ9.U8zNM7bHNlUWvzYxNDr9iBAkOZju4AXMLgAxsE2F3CUsAHwJtl5jsDLWUAzs8XfO1WDzH2Lm2RiYt1eZsdYqbw", "domain": ".toffeelive.com", "path": "/"},
-    {"name": "device_refresh_token", "value": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTgwMzc4MTY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoicmVmcmVzaCIsInR5cGUiOiJkZXZpY2UifQ.JJdo1lVnCVZXiL3OWoMkQVIRdIKSpFggReieJR4IInysnfvBrKO1DlVZqCwvQK9uoVKv6-xjc_lC_2PJ2FBEYQ"}
-]
-
 async def generate_proper_playlist():
     print("টফি সাইট থেকে চ্যানেলগুলোর তালিকা সংগ্রহ করা হচ্ছে...")
     
     channels_info = []
-    cookie_name = ""
+    cookie_name = "Edge-Cache-Cookie"
     cookie_value = ""
     
     async with async_playwright() as p:
-        # গিটহাব অ্যাকশন বা লিনাক্স সার্ভারের জন্য হেডলেস মোড
         browser = await p.chromium.launch(
             headless=True,
             args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
@@ -32,12 +21,46 @@ async def generate_proper_playlist():
             viewport={"width": 1280, "height": 800}
         )
         
-        # ব্রাউজারে আমাদের ভ্যালিড কুকিগুলো আগে থেকেই যুক্ত করে দেওয়া
-        await context.add_cookies(SAVED_COOKIES)
+        # প্লেwright এর সঠিক স্ট্যান্ডার্ড ফরম্যাটে কুকি যুক্ত করা (url সহ)
+        try:
+            await context.add_cookies([
+                {
+                    "name": "country",
+                    "value": "BD",
+                    "url": "https://toffeelive.com"
+                },
+                {
+                    "name": "state",
+                    "value": "DHK",
+                    "url": "https://toffeelive.com"
+                },
+                {
+                    "name": "allowed_countries",
+                    "value": "BD",
+                    "url": "https://toffeelive.com"
+                },
+                {
+                    "name": "device_id",
+                    "value": "6b70709f-6b1e-4f88-8b66-d4a0f8961f44",
+                    "url": "https://toffeelive.com"
+                },
+                {
+                    "name": "device_token",
+                    "value": "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJodHRwczovL3RvZmZlZWxpdmUuY29tIiwiY291bnRyeSI6IkJEIiwiZF9pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsImV4cCI6MTc5MDYzMjY5NiwiaWF0IjoxNzg4MDAyODk2LCJpc3MiOiJ0b2ZmZWVsaXZlLmNvbSIsImp0aSI6ImRjZTZiMTc0LWMxZDUtNGNmZi05YjNlLTBlZGZlMDk0Mjc2ZV8xNzg4MDAyODk2IiwicHJvdmlkZXIiOiJ0b2ZmZWUiLCJyX2lkIjoiZDA1NmQzZjQtMDU0ZC00OTAzLWJiOTItZGYyNDhkYzI2ZjhhIiwic19pZCI6ImQwNTZkM2Y0LTA1NGQtNDkwMy1iYjkyLWRmMjQ4ZGMyNmY4YSIsInRva2VuIjoiYWNjZXNzIiwidHlwZSI6ImRldmljZSJ9.U8zNM7bHNlUWvzYxNDr9iBAkOZju4AXMLgAxsE2F3CUsAHwJtl5jsDLWUAzs8XfO1WDzH2Lm2RiYt1eZsdYqbw",
+                    "url": "https://toffeelive.com"
+                },
+                {
+                    "name": "device_refresh_token",
+                    "value": "JJdo1lVnCVZXiL3OWoMkQVIRdIKSpFggReieJR4IInysnfvBrKO1DlVZqCwvQK9uoVKv6-xjc_lC_2PJ2FBEYQ",
+                    "url": "https://toffeelive.com"
+                }
+            ])
+        except Exception as e:
+            print("কুকি সেট করতে সমস্যা:", e)
         
         page = await context.new_page()
         
-        # পারফরম্যান্স বাড়ানোর জন্য ছবি, ফন্ট এবং স্টাইলশিট ব্লক করা (দ্রুত লোড হওয়ার জন্য)
+        # পারফরম্যান্স বাড়ানোর জন্য ছবি, ফন্ট এবং স্টাইলশিট ব্লক করা
         await page.route("**/*", lambda route: route.continue_() if route.request.resource_type not in ["image", "media", "font", "stylesheet"] else route.abort())
 
         try:
@@ -45,7 +68,7 @@ async def generate_proper_playlist():
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(5000)
 
-            # পেজের একদম নিচ পর্যন্ত স্ক্রোল করে সব চ্যানেল লোড করা নিশ্চিত করা
+            # পেজের একদম নিচ পর্যন্ত স্ক্রোল করে সব চ্যানেল লোড করা
             previous_height = await page.evaluate("document.body.scrollHeight")
             while True:
                 await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
@@ -128,9 +151,6 @@ async def generate_proper_playlist():
             print("মূল ব্রাউজার ত্রুটি:", e)
         finally:
             await browser.close()
-
-    if not cookie_value:
-        print("⚠️ সতর্কবার্তা: সরাসরি Edge-Cache-Cookie পাওয়া যায়নি...")
 
     print(f"✅ ফাইল তৈরি করা হচ্ছে...")
 
