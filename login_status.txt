@@ -1,3 +1,3 @@
-Toffee Login Status Report
+Toffee Premium Login Status Report
 ========================================
-🎉 [SUCCESS]: লগইন ১০০% সফল! কুকি ও ডিভাইস টোকেন অ্যাক্টিভ রয়েছে।
+❌ [ERROR]: কুকি পার্স করতে গিয়ে ত্রুটি: Expecting ',' delimiter: line 1 column 2345 (char 2344)
