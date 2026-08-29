@@ -1,15 +1,13 @@
-name: Update Toffee Playlist
+name: Toffee M3U Auto Update
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # প্রতি ৬ ঘণ্টা পর পর রান হবে
-  workflow_dispatch:
+    - cron: '0 */6 * * *' # প্রতি ৬ ঘণ্টা পর পর অটো রান হবে (আপনার ইচ্ছামতো পরিবর্তন করতে পারেন)
+  workflow_dispatch: # ম্যানুয়ালি রান করার অপশন
 
 jobs:
-  update:
+  update-playlist:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write # গিটহাবে ফাইল কমিট ও পুশ করার অনুমতি দেয়
 
     steps:
       - name: Checkout Repository
@@ -25,24 +23,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install playwright
           playwright install chromium
-          playwright install-deps chromium
 
-      - name: Run Script to Generate M3U
-        run: python main.py
+      - name: Run Python Script
+        run: |
+          python main.py
 
-      - name: Commit and Push Changes
+      - name: Commit and Push M3U Playlist
         run: |
           git config --global user.name "GitHub Actions Bot"
           git config --global user.email "actions@github.com"
-          
-          # লোকাল পরিবর্তনগুলো সাময়িকভাবে স্ট্যাশ করে রাখা যাতে পুলে এরর না দেয়
-          git stash || true
-          
-          # রিমোট রিপোজিটরির সাথে লেটেস্ট চেঞ্জেস সিঙ্ক করে নেওয়া
-          git pull --rebase origin main || git pull --rebase origin master
-          
-          # স্ট্যাশ করা পরিবর্তনগুলো আবার ফিরিয়ে আনা
-          git stash pop || true
-          
+          git status
           git add Toffee_Auto_Update.m3u
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Auto-update Toffee M3U playlist [skip ci]" && git push)
+          git diff --quiet && git diff --staged --quiet || git commit -m "Auto-update Toffee M3U playlist [skip ci]"
+          git push
