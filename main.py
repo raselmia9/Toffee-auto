@@ -6,9 +6,23 @@ from playwright.async_api import async_playwright
 M3U_FILE_NAME = "Toffee_Auto_Update.m3u"
 STATUS_FILE_NAME = "login_status.txt"
 COOKIE_FILE_NAME = "Loging Cookie.json"
+PREMIUM_JSON_FILE = "Premium_channel_List.json"
+
+# জেসন ফাইল থেকে প্রিমিয়াম চ্যানেল লিস্ট লোড করার ফাংশন
+def load_premium_channels():
+    if os.path.exists(PREMIUM_JSON_FILE):
+        try:
+            with open(PREMIUM_JSON_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"⚠️ [WARNING]: প্রিমিয়াম জেসন ফাইল পড়তে সমস্যা হয়েছে -> {e}")
+    return []
 
 async def generate_proper_playlist():
     print("টফি সাইট থেকে চ্যানেলগুলোর তালিকা সংগ্রহ করা হচ্ছে...")
+    
+    # ব্যাকআপের জন্য প্রিমিয়াম চ্যানেলগুলো আগে থেকেই লোড করে রাখা হলো
+    premium_channels = load_premium_channels()
     
     execution_logs = []
     execution_logs.append("╔════════════════════════════════════════════════╗")
@@ -16,7 +30,7 @@ async def generate_proper_playlist():
     execution_logs.append("╚════════════════════════════════════════════════╝\n")
     
     channels_info = []
-    final_playlist_data = [] # এখানে আগে থেকেই ইনিশিয়ালাইজ করে রাখা হলো যেন UnboundLocalError না আসে
+    final_playlist_data = [] 
     cookie_name = "Edge-Cache-Cookie"
     cookie_value = ""
     login_status_msg = "❌ [FAILED]: কুকি লোড বা লগইন স্ট্যাটাস চেক করা যায়নি।"
@@ -86,7 +100,6 @@ async def generate_proper_playlist():
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(6000)
 
-            # নিরাপদ এবং সহজ স্ক্রোলিং লজিক (সিনট্যাক্স এরর মুক্ত)
             try:
                 for _ in range(8):
                     await page.evaluate("window.scrollBy(0, 800);")
@@ -109,7 +122,6 @@ async def generate_proper_playlist():
                         seen_links.add(href)
                         watch_url = href if href.startswith("http") else f"https://toffeelive.com{href}"
 
-                        # সঠিক নাম এক্সট্রাক্ট করা
                         name = await card.evaluate("""el => {
                             const img = el.querySelector('img');
                             if (img && img.alt && img.alt.trim() !== '') {
@@ -128,7 +140,6 @@ async def generate_proper_playlist():
                             return "";
                         }""")
 
-                        # ডামি বা ফালতু নাম ফিল্টার করা
                         if not name or "Live Channel" in name or len(name) < 2:
                             continue
 
@@ -194,7 +205,20 @@ async def generate_proper_playlist():
                 except Exception as e:
                     pass
 
-                final_stream = stream_link if stream_link else item['watch_url']
+                # ==========================================
+                # ব্যাকআপ লজিক: লাইভ স্ট্রিম লিংক না পেলে জেসন থেকে বসানো
+                # ==========================================
+                final_stream = ""
+                if stream_link:
+                    final_stream = stream_link
+                else:
+                    # জেসন লিস্ট থেকে নাম মিলিয়ে ব্যাকআপ লিংক খোঁজা হচ্ছে
+                    matched_backup = next((ch["url"] for ch in premium_channels if ch["name"].strip().lower() == item['channel_name'].strip().lower()), None)
+                    if matched_backup:
+                        final_stream = matched_backup
+                        execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' এর লাইভ লিংক না পেয়ে JSON থেকে ব্যাকআপ লিংক ব্যবহার করা হয়েছে।")
+                    else:
+                        final_stream = item['watch_url'] # ব্যাকআপেও না পেলে ওয়াচ ইউআরএল বসবে
                 
                 final_playlist_data.append({
                     "channel_name": item['channel_name'],
