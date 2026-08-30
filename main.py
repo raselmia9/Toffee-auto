@@ -20,17 +20,21 @@ async def generate_proper_playlist():
     cookie_value = ""
     login_status_msg = "❌ [FAILED]: কুকি লোড বা লগইন স্ট্যাটাস চেক করা যায়নি।"
     
-    # আপনার দেওয়া সঠিক JSON ফরম্যাট থেকে কুকি পার্স করার ব্যবস্থা
     cookies_to_add = []
     try:
         if os.path.exists(COOKIE_FILE_NAME):
             with open(COOKIE_FILE_NAME, "r", encoding="utf-8") as f:
                 file_content = f.read().strip()
                 
-            raw_data = json.loads(file_content)
-            
-            # ১. cookies স্ট্রিং পার্স করা
-            cookie_string = raw_data.get("cookies", "")
+            try:
+                raw_data = json.loads(file_content)
+                cookie_string = raw_data.get("cookies", "")
+            except:
+                # যদি JSON সিনট্যাক্স এরর থাকে, তবে টেক্সট থেকে সরাসরি cookies এক্সট্রাক্ট করা
+                import re
+                match = re.search(r'"cookies"\s*:\s*"(.*?)"', file_content)
+                cookie_string = match.group(1) if match else ""
+
             if cookie_string:
                 for item in cookie_string.split(";"):
                     if "=" in item:
@@ -43,22 +47,7 @@ async def generate_proper_playlist():
                                 "path": "/"
                             })
 
-            # ২. localStorage থেকে auth_session যোগ করা (প্রিমিয়াম সেশনের জন্য অত্যন্ত জরুরি)
-            local_storage = raw_data.get("localStorage", {})
-            if "auth_session" in local_storage:
-                try:
-                    auth_data = json.loads(local_storage["auth_session"])
-                    if "access" in auth_data:
-                        cookies_to_add.append({
-                            "name": "auth_access_token",
-                            "value": auth_data["access"],
-                            "domain": ".toffeelive.com",
-                            "path": "/"
-                        })
-                except:
-                    pass
-
-            login_status_msg = "🎉 [SUCCESS]: আপনার ফাইল থেকে প্রিমিয়াম কুকি সফলভাবে প্রসেস হয়েছে!"
+            login_status_msg = "🎉 [SUCCESS]: প্রিমিয়াম কুকি সফলভাবে লোড হয়েছে!"
             execution_logs.append(f"🟢 {login_status_msg}")
             print(login_status_msg)
         else:
@@ -70,7 +59,6 @@ async def generate_proper_playlist():
         err_msg = f"❌ [ERROR]: কুকি পড়তে সমস্যা হয়েছে -> {str(e)}"
         execution_logs.append(f"🔴 {err_msg}")
         print(err_msg)
-        login_status_msg = err_msg
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
@@ -85,7 +73,7 @@ async def generate_proper_playlist():
         if cookies_to_add:
             try:
                 await context.add_cookies(cookies_to_add)
-                execution_logs.append("🟢 [INFO]: ব্রাউজারে সফলভাবে প্রিমিয়াম কুকি ইনজেক্ট করা হয়েছে।")
+                execution_logs.append("🟢 [INFO]: ব্রাউজারে সফলভাবে কুকি ইনজেক্ট করা হয়েছে।")
             except Exception as e:
                 execution_logs.append(f"🔴 [ERROR]: ব্রাউজারে কুকি সেট করার সময় ত্রুটি -> {e}")
         
@@ -99,15 +87,29 @@ async def generate_proper_playlist():
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(6000)
 
-            # পেজ স্ক্রোল করে সব চ্যানেল লোড করা
-            previous_height = await page.evaluate("document.body.scrollHeight")
-            while True:
-                await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
-                await page.wait_for_timeout(2000)
-                current_height = await page.evaluate("document.body.scrollHeight")
-                if current_height == previous_height:
-                    break
-                previous_height = current_height
+            # পেজের সব হরিজন্টাল এবং ভার্টিকাল সেকশন পুরোপুরি স্ক্রোল ও লোড করার উন্নত লজিক
+            await page.evaluate("""async () => {
+                await new Promise((resolve) => {
+                    let totalHeight = 0;
+                    let distance = 300;
+                    let timer = setInterval(() => {
+                        window.scrollBy(0, distance);
+                        totalHeight += distance;
+                        
+                        // হরিজন্টাল স্ক্রোল কন্টেইনারগুলো ডানে স্ক্রোল করা যাতে ভেতরের চ্যানেল লোড হয়
+                        const horizontalContainers = document.querySelectorAll('[class*="scroll"], [class*="slider"], [class*="horizontal"]');
+                        horizontalContainers.forEach(el => {
+                            el.scrollLeft += 300;
+                        });
+
+                        if (totalHeight >= document.body.scrollHeight - window.innerHeight || totalHeight > 15000) {
+                            clearInterval(timer);
+                            resolve();
+                        }
+                    }, 200);
+                });
+            """)
+            await page.wait_for_timeout(4000)
 
             channel_cards = await page.locator("a[href*='/watch/']").all()
             
@@ -119,7 +121,7 @@ async def generate_proper_playlist():
                         seen_links.add(href)
                         watch_url = href if href.startswith("http") else f"https://toffeelive.com{href}"
 
-                        # সঠিক চ্যানেলের নাম বের করার উন্নত জাভাস্ক্রিপ্ট লজিক
+                        # সঠিক নাম এক্সট্রাক্ট করা
                         name = await card.evaluate("""el => {
                             const img = el.querySelector('img');
                             if (img && img.alt && img.alt.trim() !== '') {
@@ -128,15 +130,19 @@ async def generate_proper_playlist():
                             const headings = el.querySelectorAll('h3, h4, span, p');
                             for (let h of headings) {
                                 const t = h.innerText.trim();
-                                if (t.length > 0 && t.length < 30) return t;
+                                if (t.length > 0 && t.length < 40) return t;
                             }
                             const text = el.innerText || el.textContent;
                             if (text) {
                                 const lines = text.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
                                 if (lines.length > 0) return lines[0];
                             }
-                            return "Live Channel";
+                            return "";
                         }""")
+
+                        # ডামি বা ফালতু নাম ফিল্টার করা (যেমন: "Live Channel" বা খালি নাম)
+                        if not name or "Live Channel" in name or len(name) < 2:
+                            continue
 
                         logo = "https://assets-prod.services.toffeelive.com/logo.webp"
                         try:
@@ -149,14 +155,14 @@ async def generate_proper_playlist():
                             pass
 
                         channels_info.append({
-                            "channel_name": name if name else "Live Channel",
+                            "channel_name": name,
                             "logo": logo,
                             "watch_url": watch_url
                         })
                 except:
                     pass
 
-            msg_total = f"🟢 [INFO]: মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক সংগ্রহ শুরু হচ্ছে..."
+            msg_total = f"🟢 [INFO]: মোট {len(channels_info)} টি সঠিক চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক সংগ্রহ শুরু হচ্ছে..."
             execution_logs.append(msg_total)
             print(msg_total)
 
@@ -176,7 +182,7 @@ async def generate_proper_playlist():
                     new_page.on("request", intercept)
                     
                     await new_page.goto(item['watch_url'], timeout=30000)
-                    await new_page.wait_for_timeout(5000) 
+                    await new_page.wait_for_timeout(4000) 
 
                     if not stream_link:
                         try:
