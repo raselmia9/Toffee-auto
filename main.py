@@ -150,6 +150,7 @@ async def generate_proper_playlist():
                 try:
                     new_page = await context.new_page()
                     
+                    # প্রাইমারি মেথড: নেটওয়ার্ক রিকোয়েস্ট ইন্টারসেপ্ট করা (.m3u8 খোঁজা)
                     def intercept(req):
                         nonlocal stream_link
                         url = req.url
@@ -159,8 +160,40 @@ async def generate_proper_playlist():
                     new_page.on("request", intercept)
                     await new_page.goto(item['watch_url'], timeout=30000)
                     
-                    # প্রিমিয়াম লিংক সঠিকভাবে ধরার জন্য পর্যাপ্ত সময় অপেক্ষা করা
-                    await new_page.wait_for_timeout(7000) 
+                    # প্রিমিয়াম লিংক ধরার জন্য পর্যাপ্ত সময় অপেক্ষা করা
+                    await new_page.wait_for_timeout(6000) 
+
+                    # সেকেন্ডারি ফলব্যাক মেথড: নেটওয়ার্কে লিংক না পেলে DOM / JS থেকে সোর্স স্ক্যান করা
+                    if not stream_link:
+                        print(f"⚠️ নেটওয়ার্কে লিংক মেলেনি ({item['channel_name']}), DOM/JS ফলব্যাক মেথড চেষ্টা করা হচ্ছে...")
+                        try:
+                            # ভিডিও এলিমেন্ট অথবা প্লেয়ার সোর্স থেকে লিংক খোঁজা
+                            dom_stream = await new_page.evaluate("""() => {
+                                // ১. ভিডিও ট্যাগ চেক করা
+                                const video = document.querySelector('video');
+                                if (video && video.src && video.src.includes('.m3u8')) {
+                                    return video.src;
+                                }
+                                // ২. সোর্স ট্যাগ চেক করা
+                                const source = document.querySelector('source');
+                                if (source && source.src && source.src.includes('.m3u8')) {
+                                    return source.src;
+                                }
+                                // ৩. পেজের স্ক্রিপ্ট বা গ্লোবাল অবজেক্ট থেকে .m3u8 লিংক এক্সট্রাক্ট করা
+                                const htmlContent = document.documentElement.innerHTML;
+                                const match = htmlContent.match(/https?:\\/\\/[^\\s"']+\\.m3u8[^\\s"']*/);
+                                if (match) {
+                                    return match[0].replace(/\\\\/g, '');
+                                }
+                                return "";
+                            }""")
+                            
+                            if dom_stream:
+                                stream_link = dom_stream
+                                print(f"✅ DOM ফলব্যাক থেকে লিংক পাওয়া গেছে!")
+                        except Exception as dom_err:
+                            print(f"DOM ফলব্যাক এরর: {dom_err}")
+
                     await new_page.close()
                 except Exception as e:
                     print(f"লিংক সংগ্রহে সমস্যা ({item['channel_name']}):", e)
