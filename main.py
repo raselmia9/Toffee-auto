@@ -20,7 +20,7 @@ async def generate_proper_playlist():
     cookie_value = ""
     login_status_msg = "❌ [FAILED]: কুকি লোড বা লগইন স্ট্যাটাস চেক করা যায়নি।"
     
-    # নিরাপদ কুকি পার্সিং সিস্টেম
+    # শতভাগ নিরাপদ কুকি ফিল্ড ক্লিনার ও পার্সার
     cookies_to_add = []
     try:
         if os.path.exists(COOKIE_FILE_NAME):
@@ -29,16 +29,17 @@ async def generate_proper_playlist():
                 
             try:
                 raw_data = json.loads(file_content)
-                # যদি জেসন ফাইলে সরাসরি কুকিজের লিস্ট থাকে অথবা স্ট্রিং থাকে
                 if isinstance(raw_data, list):
                     for c in raw_data:
-                        if "name" in c and "value" in c:
-                            cookies_to_add.append({
-                                "name": c["name"].strip(),
-                                "value": c["value"].strip(),
+                        if isinstance(c, dict) and "name" in c and "value" in c:
+                            # শুধুমাত্র প্লেরাইটের জন্য অনুমোদিত ফিল্ডগুলো ফিল্টার করা
+                            clean_cookie = {
+                                "name": str(c["name"]).strip(),
+                                "value": str(c["value"]).strip(),
                                 "domain": ".toffeelive.com",
                                 "path": "/"
-                            })
+                            }
+                            cookies_to_add.append(clean_cookie)
                 else:
                     cookie_string = raw_data.get("cookies", "")
                     if cookie_string:
@@ -98,7 +99,6 @@ async def generate_proper_playlist():
         
         page = await context.new_page()
         
-        # ইমেজ এবং অন্যান্য আনপ্রেডিক্টেড রিসোর্স ব্লক করা যাতে ফাস্ট লোড হয়
         await page.route("**/*", lambda route: route.continue_() if route.request.resource_type not in ["media", "font", "stylesheet"] else route.abort())
 
         try:
@@ -107,7 +107,6 @@ async def generate_proper_playlist():
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(6000)
 
-            # পেজ স্ক্রোল করে সব চ্যানেল লোড করা
             previous_height = await page.evaluate("document.body.scrollHeight")
             while True:
                 await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
@@ -117,7 +116,6 @@ async def generate_proper_playlist():
                     break
                 previous_height = current_height
 
-            # সুনির্দিষ্ট সিলেক্টর দিয়ে চ্যানেল কার্ড ও নাম সংগ্রহ করা
             channel_cards = await page.locator("a[href*='/watch/']").all()
             
             seen_links = set()
@@ -128,25 +126,22 @@ async def generate_proper_playlist():
                         seen_links.add(href)
                         watch_url = href if href.startswith("http") else f"https://toffeelive.com{href}"
 
-                        # সঠিক নাম বের করার উন্নত লজিক
-                        name = "Live Channel"
-                        try:
-                            # কার্ডের ভেতরের হেডিং বা টেক্সট খোঁজা
-                            title_elem = card.locator("h3, h4, span, p").first
-                            if await title_elem.count() > 0:
-                                t_text = await title_elem.inner_text()
-                                if t_text and len(t_text.strip()) > 0:
-                                    name = t_text.strip()
-                            if name == "Live Channel":
-                                card_text = await card.inner_text()
-                                if card_text:
-                                    lines = [l.strip() for l in card_text.split('\n') if l.strip()]
-                                    if lines:
-                                        name = lines[0]
-                        except:
-                            pass
+                        # উন্নত ও নিখুঁত নাম এক্সট্রাকশন লজিক (JavaScript দিয়ে পেজ থেকে নাম তুলে আনা)
+                        name = await card.evaluate("""el => {
+                            // প্রথমে ইমেজ বা অল্টার টেক্সট খোঁজা
+                            const img = el.querySelector('img');
+                            if (img && img.alt && img.alt.trim() !== '') {
+                                return img.alt.trim();
+                            }
+                            // কার্ডের ভেতরের যেকোনো টেক্সট বা হেডিং খোঁজা
+                            const text = el.innerText || el.textContent;
+                            if (text) {
+                                const lines = text.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
+                                if (lines.length > 0) return lines[0];
+                            }
+                            return "Live Channel";
+                        }""")
 
-                        # লোগো সংগ্রহ
                         logo = "https://assets-prod.services.toffeelive.com/logo.webp"
                         try:
                             img_elem = card.locator("img").first
@@ -158,7 +153,7 @@ async def generate_proper_playlist():
                             pass
 
                         channels_info.append({
-                            "channel_name": name,
+                            "channel_name": name if name else "Live Channel",
                             "logo": logo,
                             "watch_url": watch_url
                         })
@@ -175,7 +170,6 @@ async def generate_proper_playlist():
                 try:
                     new_page = await context.new_page()
                     
-                    # নেটওয়ার্ক ইন্টারসেপ্ট মেথড
                     def intercept(req):
                         nonlocal stream_link
                         url = req.url
@@ -188,23 +182,18 @@ async def generate_proper_playlist():
                     await new_page.goto(item['watch_url'], timeout=30000)
                     await new_page.wait_for_timeout(5000) 
 
-                    # নতুন কার্যকরী সেকেন্ডারি মেথড: পেজের ফাইনাল রেন্ডার হওয়া সোর্স থেকে সরাসরি এক্সট্রাক্ট করা
                     if not stream_link:
-                        execution_logs.append(f"🟡 [FALLBACK START]: নেটওয়ার্কে লিংক মেলেনি ({item['channel_name']}), নতুন সেকেন্ডারি মেথড চেক করা হচ্ছে...")
+                        execution_logs.append(f"🟡 [FALLBACK START]: নেটওয়ার্কে লিংক মেলেনি ({item['channel_name']}), সেকেন্ডারি মেথড চেক করা হচ্ছে...")
                         try:
                             new_secondary_stream = await new_page.evaluate("""() => {
-                                // পেজের পুরো এইচটিএমএল বা স্ক্রিপ্ট থেকে .m3u8 বা মাস্টার প্লেলিস্ট খোঁজা
                                 const html = document.documentElement.innerHTML;
                                 const regex = /https?:\\/\\/[^\\s"']+\\.m3u8[^\\s"']*/g;
                                 const matches = html.match(regex);
                                 if (matches && matches.length > 0) {
                                     return matches[0].replace(/\\\\/g, '');
                                 }
-                                
-                                // যদি ভিডিও সোর্স ট্যাগে সরাসরি থাকে
                                 const v = document.querySelector('video');
                                 if (v && v.src) return v.src;
-                                
                                 return "";
                             }""")
                             
