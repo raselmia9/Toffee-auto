@@ -1,5 +1,9 @@
 [
   {
+    "name": "EPL channel 1",
+    "url": "https://prod-cdn01-live.toffeelive.com/cdn/live/EPL-26-27-CH-1/index.m3u8?edge-cache-token=Expires=1788082770~Starts=1788082470~URLPrefix=aHR0cHM6Ly9wcm9kLWNkbjAxLWxpdmUudG9mZmVlbGl2ZS5jb20~Data=eyJzdWJzY3JpYmVyX2lkIjoiYWEzOGU4ZWYtNTI5MC00ZTllLThhNDgtMGYyNjNkYzVjN2IyIn0~Signature=lSDvokv_qtIuARPmDJqyRImMqgpnTR1H9EZU88dY3Es9N-OdsoeT8Y3DBMZIBZ11-18qniGx-s2pQ93BMDK_Bg&nocache=1788082470507"
+  },
+  {
     "name": "Eurosport HD",
     "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/euro_sports_hd/playlist.m3u8"
   },
