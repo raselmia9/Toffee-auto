@@ -1,7 +1,7 @@
 #EXTM3U
 
 #EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/JS1AqZgBNnOkwJLWlwg-/posters/4672bab6-2a8f-4700-b0e7-b5b71674abf9.png", EPL channel 1
-https://toffeelive.com/en/watch/JS1AqZgBNnOkwJLWlwg-
+https://prod-cdn01-live.toffeelive.com/cdn/live/EPL-26-27-CH-1/index.m3u8?edge-cache-token=Expires=1788082770~Starts=1788082470~URLPrefix=aHR0cHM6Ly9wcm9kLWNkbjAxLWxpdmUudG9mZmVlbGl2ZS5jb20~Data=eyJzdWJzY3JpYmVyX2lkIjoiYWEzOGU4ZWYtNTI5MC00ZTllLThhNDgtMGYyNjNkYzVjN2IyIn0~Signature=lSDvokv_qtIuARPmDJqyRImMqgpnTR1H9EZU88dY3Es9N-OdsoeT8Y3DBMZIBZ11-18qniGx-s2pQ93BMDK_Bg&nocache=1788082470507
 #EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
 #EXTHTTP:{"cookie":"Edge-Cache-Cookie=URLPrefix=aHR0cHM6Ly9ibGRjbXByb2QtY2RuLnRvZmZlZWxpdmUuY29t:Expires=1788257958:KeyName=prod_linear:Signature=jj5AH0pXc5OzhYUtvCG8S50fgg1CfM1VhuM649kOuzN6Ijq8Rov8g5MS6bVM7gNKGcaCkcbw3cGFf9dvzCkkCQ"}
 
