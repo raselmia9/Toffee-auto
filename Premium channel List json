@@ -1,0 +1,74 @@
+[
+  {
+    "name": "Eurosport HD",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/euro_sports_hd/playlist.m3u8"
+  },
+  {
+    "name": "Zee Bangla",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/zee_bangla/playlist.m3u8?nocache=1788083088473"
+  },
+  {
+    "name": "HUM",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/hum_tv/playlist.m3u8"
+  },
+  {
+    "name": "HUM Masala",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/hum_masala/playlist.m3u8"
+  },
+  {
+    "name": "HUM Sitaray",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/hum_sitaray/playlist.m3u8"
+  },
+  {
+    "name": "Zee Anmol",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/zee_anmol/playlist.m3u8"
+  },
+  {
+    "name": "B4U Music",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/b4u_music/playlist.m3u8"
+  },
+  {
+    "name": "Zing",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/zing_sd/playlist.m3u8"
+  },
+  {
+    "name": "Sony Entertainment Television HD",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/sonyentertainmnt_hd/playlist.m3u8"
+  },
+  {
+    "name": "Sony MAX HD",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/sony_max_hd/playlist.m3u8"
+  },
+  {
+    "name": "Sony MAX",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/sony_max/playlist.m3u8"
+  },
+  {
+    "name": "Sony PIX HD",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/sonypix_hd/playlist.m3u8"
+  },
+  {
+    "name": "Zee Cafe",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/zee_cafe_hd/playlist.m3u8"
+  },
+  {
+    "name": "B4U Movies APAC",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/b4u_movies/playlist.m3u8"
+  },
+  {
+    "name": "Zee Bangla Cinema",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/zee_bangla_cinema/playlist.m3u8"
+  },
+  {
+    "name": "Zee Cinema HD",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/zee_cinema_hd/playlist.m3u8"
+  },
+  {
+    "name": "& Pictures HD",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/andpicture_hd/playlist.m3u8"
+  },
+  {
+    "name": "Zee Bollywood",
+    "url": "https://bldcmprod-cdn.toffeelive.com/cdn/live/zee_bollywood/playlist.m3u8"
+  }
+]
