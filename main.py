@@ -176,57 +176,39 @@ async def generate_proper_playlist():
                 try:
                     new_page = await context.new_page()
                     
-                    # প্রাইমারি মেথড: নেটওয়ার্ক রিকোয়েস্ট ইন্টারসেপ্ট করা (.m3u8 বা স্ট্রিম ম্যানিফেস্ট খোঁজা)
+                    # -------------------------------------------------------------
+                    # ১. প্রাইমারি মেথড: নেটওয়ার্ক রিকোয়েস্ট ইন্টারসেপ্ট করা
+                    # -------------------------------------------------------------
                     def intercept(req):
                         nonlocal stream_link
                         url = req.url
-                        if ".m3u8" in url or "playlist" in url or "manifest" in url or "stream" in url:
-                            if not stream_link and ("m3u8" in url or "manifest" in url):
+                        if ".m3u8" in url or "manifest" in url:
+                            if not stream_link:
                                 stream_link = url
 
                     new_page.on("request", intercept)
                     
-                    # বিকল্প নেটওয়ার্ক ট্রাফিক রেসপন্স ক্যাপচার করার মেথড (API/JSON রেসপন্স থেকে লিংক এক্সট্রাক্ট করা)
-                    async def handle_response(response):
-                        nonlocal stream_link
-                        if not stream_link:
-                            try:
-                                res_url = response.url
-                                if "api" in res_url or "channel" in res_url or "player" in res_url:
-                                    content_type = response.headers.get("content-type", "")
-                                    if "json" in content_type:
-                                        body = await response.text()
-                                        if ".m3u8" in body:
-                                            # বডি থেকে .m3u8 লিংকটি কুড়িয়ে নেওয়া
-                                            import re
-                                            match = re.search(r'https?://[^\s"\']+\.m3u8[^\s"^\']*', body)
-                                            if match:
-                                                stream_link = match.group(0).replace('\\/', '/')
-                            except:
-                                pass
-
-                    new_page.on("response", handle_response)
-                    
                     await new_page.goto(item['watch_url'], timeout=30000)
                     await new_page.wait_for_timeout(6000) 
 
-                    # যদি উপরোক্ত উপায়েও লিংক না পাওয়া যায়, তবে ব্রাউজারের উইন্ডো অবজেক্ট বা লোকাল স্টোরেজ স্ক্যান করা
+                    # -------------------------------------------------------------
+                    # ২. সেকেন্ডারি (ফলব্যাক) মেথড: প্রাইমারি ব্যর্থ হলে এটি কাজ করবে
+                    # -------------------------------------------------------------
                     if not stream_link:
-                        execution_logs.append(f"🟡 [FALLBACK]: নেটওয়ার্কে সরাসরি লিংক মেলেনি ({item['channel_name']}), অ্যাডভান্সড পলিসিং মেথড চেষ্টা করা হচ্ছে...")
+                        execution_logs.append(f"🟡 [FALLBACK START]: প্রাইমারি মেথডে লিংক মেলেনি ({item['channel_name']}), সেকেন্ডারি অ্যাডভান্সড মেথড শুরু হচ্ছে...")
                         try:
-                            advanced_stream = await new_page.evaluate("""() => {
-                                // ১. উইন্ডো গ্লোবাল ভ্যারিয়েবল বা প্লেয়ার ইনস্ট্যান্স চেক করা
+                            # এপিআই রেসপন্স বা স্ক্রিপ্ট বা __NEXT_DATA__ থেকে লিংক খোঁজা
+                            secondary_stream = await new_page.evaluate("""() => {
+                                // ক. Next.js ডেটা অবজেক্ট চেক করা
                                 if (window.__NEXT_DATA__ && window.__NEXT_DATA__.props) {
                                     try {
-                                        const pageProps = window.__NEXT_DATA__.props.pageProps;
-                                        // যদি ডেটার ভেতরে লিংক থাকে
-                                        const strData = JSON.stringify(pageProps);
+                                        const strData = JSON.stringify(window.__NEXT_DATA__.props);
                                         const m = strData.match(/https?:\\/\\/[^\\s"']+\\.m3u8[^\\s"']*/);
                                         if (m) return m[0].replace(/\\\\/g, '');
                                     } catch(e) {}
                                 }
                                 
-                                // ২. যেকোনো স্ক্রিপ্ট ট্যাগ থেকে .m3u8 বা স্ট্রিম লিংক খোঁজা
+                                // খ. পেজের সমস্ত স্ক্রিপ্ট ট্যাগ স্ক্যান করা
                                 const scripts = document.querySelectorAll('script');
                                 for (let s of scripts) {
                                     const txt = s.textContent || s.innerText;
@@ -235,14 +217,24 @@ async def generate_proper_playlist():
                                         if (match) return match[0].replace(/\\\\/g, '');
                                     }
                                 }
+                                
+                                // গ. ভিডিও বা সোর্স ট্যাগ চেক করা
+                                const video = document.querySelector('video');
+                                if (video && video.src && video.src.includes('.m3u8')) return video.src;
+                                
+                                const source = document.querySelector('source');
+                                if (source && source.src && source.src.includes('.m3u8')) return source.src;
+
                                 return "";
                             }""")
                             
-                            if advanced_stream:
-                                stream_link = advanced_stream
-                                execution_logs.append(f"🟢 [SUCCESS]: অ্যাডভান্সড ফলব্যাক থেকে লিংক পাওয়া গেছে ({item['channel_name']})!")
-                        except Exception as adv_err:
-                            execution_logs.append(f"🔴 [ERROR]: অ্যাডভান্সড ফলব্যাক এরর ({item['channel_name']}) -> {adv_err}")
+                            if secondary_stream:
+                                stream_link = secondary_stream
+                                execution_logs.append(f"🟢 [SUCCESS]: সেকেন্ডারি ফলব্যাক থেকে সফলভাবে লিংক উদ্ধার করা হয়েছে ({item['channel_name']})!")
+                            else:
+                                execution_logs.append(f"🔴 [FAILED]: সেকেন্ডারি মেথডও কোনো লিংক খুঁজে পায়নি ({item['channel_name']})।")
+                        except Exception as sec_err:
+                            execution_logs.append(f"🔴 [ERROR]: সেকেন্ডারি ফলব্যাক এরর ({item['channel_name']}) -> {sec_err}")
 
                     await new_page.close()
                 except Exception as e:
