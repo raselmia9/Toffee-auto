@@ -20,42 +20,19 @@ async def generate_proper_playlist():
     cookie_value = ""
     login_status_msg = "❌ [FAILED]: কুকি লোড বা লগইন স্ট্যাটাস চেক করা যায়নি।"
     
-    # শতভাগ নিরাপদ কুকি ফিল্ড ক্লিনার ও পার্সার
+    # আপনার দেওয়া সঠিক JSON ফরম্যাট থেকে কুকি পার্স করার ব্যবস্থা
     cookies_to_add = []
     try:
         if os.path.exists(COOKIE_FILE_NAME):
             with open(COOKIE_FILE_NAME, "r", encoding="utf-8") as f:
                 file_content = f.read().strip()
                 
-            try:
-                raw_data = json.loads(file_content)
-                if isinstance(raw_data, list):
-                    for c in raw_data:
-                        if isinstance(c, dict) and "name" in c and "value" in c:
-                            # শুধুমাত্র প্লেরাইটের জন্য অনুমোদিত ফিল্ডগুলো ফিল্টার করা
-                            clean_cookie = {
-                                "name": str(c["name"]).strip(),
-                                "value": str(c["value"]).strip(),
-                                "domain": ".toffeelive.com",
-                                "path": "/"
-                            }
-                            cookies_to_add.append(clean_cookie)
-                else:
-                    cookie_string = raw_data.get("cookies", "")
-                    if cookie_string:
-                        for item in cookie_string.split(";"):
-                            if "=" in item:
-                                parts = item.strip().split("=", 1)
-                                if len(parts) == 2:
-                                    cookies_to_add.append({
-                                        "name": parts[0].strip(),
-                                        "value": parts[1].strip(),
-                                        "domain": ".toffeelive.com",
-                                        "path": "/"
-                                    })
-            except json.JSONDecodeError:
-                execution_logs.append("⚠️ [WARNING]: র-টেক্সট থেকে কুকি রিড করা হচ্ছে...")
-                for item in file_content.split(";"):
+            raw_data = json.loads(file_content)
+            
+            # ১. cookies স্ট্রিং পার্স করা
+            cookie_string = raw_data.get("cookies", "")
+            if cookie_string:
+                for item in cookie_string.split(";"):
                     if "=" in item:
                         parts = item.strip().split("=", 1)
                         if len(parts) == 2:
@@ -66,7 +43,22 @@ async def generate_proper_playlist():
                                 "path": "/"
                             })
 
-            login_status_msg = "🎉 [SUCCESS]: প্রিমিয়াম সেশন এবং কুকি সফলভাবে প্রসেস হয়েছে!"
+            # ২. localStorage থেকে auth_session যোগ করা (প্রিমিয়াম সেশনের জন্য অত্যন্ত জরুরি)
+            local_storage = raw_data.get("localStorage", {})
+            if "auth_session" in local_storage:
+                try:
+                    auth_data = json.loads(local_storage["auth_session"])
+                    if "access" in auth_data:
+                        cookies_to_add.append({
+                            "name": "auth_access_token",
+                            "value": auth_data["access"],
+                            "domain": ".toffeelive.com",
+                            "path": "/"
+                        })
+                except:
+                    pass
+
+            login_status_msg = "🎉 [SUCCESS]: আপনার ফাইল থেকে প্রিমিয়াম কুকি সফলভাবে প্রসেস হয়েছে!"
             execution_logs.append(f"🟢 {login_status_msg}")
             print(login_status_msg)
         else:
@@ -93,7 +85,7 @@ async def generate_proper_playlist():
         if cookies_to_add:
             try:
                 await context.add_cookies(cookies_to_add)
-                execution_logs.append("🟢 [INFO]: ব্রাউজারে সফলভাবে কুকি ইনজেক্ট করা হয়েছে।")
+                execution_logs.append("🟢 [INFO]: ব্রাউজারে সফলভাবে প্রিমিয়াম কুকি ইনজেক্ট করা হয়েছে।")
             except Exception as e:
                 execution_logs.append(f"🔴 [ERROR]: ব্রাউজারে কুকি সেট করার সময় ত্রুটি -> {e}")
         
@@ -107,6 +99,7 @@ async def generate_proper_playlist():
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(6000)
 
+            # পেজ স্ক্রোল করে সব চ্যানেল লোড করা
             previous_height = await page.evaluate("document.body.scrollHeight")
             while True:
                 await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
@@ -126,14 +119,17 @@ async def generate_proper_playlist():
                         seen_links.add(href)
                         watch_url = href if href.startswith("http") else f"https://toffeelive.com{href}"
 
-                        # উন্নত ও নিখুঁত নাম এক্সট্রাকশন লজিক (JavaScript দিয়ে পেজ থেকে নাম তুলে আনা)
+                        # সঠিক চ্যানেলের নাম বের করার উন্নত জাভাস্ক্রিপ্ট লজিক
                         name = await card.evaluate("""el => {
-                            // প্রথমে ইমেজ বা অল্টার টেক্সট খোঁজা
                             const img = el.querySelector('img');
                             if (img && img.alt && img.alt.trim() !== '') {
                                 return img.alt.trim();
                             }
-                            // কার্ডের ভেতরের যেকোনো টেক্সট বা হেডিং খোঁজা
+                            const headings = el.querySelectorAll('h3, h4, span, p');
+                            for (let h of headings) {
+                                const t = h.innerText.trim();
+                                if (t.length > 0 && t.length < 30) return t;
+                            }
                             const text = el.innerText || el.textContent;
                             if (text) {
                                 const lines = text.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
@@ -183,7 +179,6 @@ async def generate_proper_playlist():
                     await new_page.wait_for_timeout(5000) 
 
                     if not stream_link:
-                        execution_logs.append(f"🟡 [FALLBACK START]: নেটওয়ার্কে লিংক মেলেনি ({item['channel_name']}), সেকেন্ডারি মেথড চেক করা হচ্ছে...")
                         try:
                             new_secondary_stream = await new_page.evaluate("""() => {
                                 const html = document.documentElement.innerHTML;
@@ -199,15 +194,12 @@ async def generate_proper_playlist():
                             
                             if new_secondary_stream:
                                 stream_link = new_secondary_stream
-                                execution_logs.append(f"🟢 [SUCCESS]: সেকেন্ডারি মেথড থেকে লিংক পাওয়া গেছে ({item['channel_name']})!")
-                            else:
-                                execution_logs.append(f"🔴 [FAILED]: সেকেন্ডারি মেথডও ব্যর্থ হয়েছে ({item['channel_name']})।")
-                        except Exception as sec_err:
-                            execution_logs.append(f"🔴 [ERROR]: সেকেন্ডারি মেথড এরর ({item['channel_name']}) -> {sec_err}")
+                        except:
+                            pass
 
                     await new_page.close()
                 except Exception as e:
-                    execution_logs.append(f"🔴 [ERROR]: লিংক সংগ্রহে সমস্যা ({item['channel_name']}) -> {e}")
+                    pass
 
                 final_stream = stream_link if stream_link else item['watch_url']
                 
