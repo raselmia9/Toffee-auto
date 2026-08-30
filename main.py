@@ -16,6 +16,7 @@ async def generate_proper_playlist():
     execution_logs.append("╚════════════════════════════════════════════════╝\n")
     
     channels_info = []
+    final_playlist_data = [] # এখানে আগে থেকেই ইনিশিয়ালাইজ করে রাখা হলো যেন UnboundLocalError না আসে
     cookie_name = "Edge-Cache-Cookie"
     cookie_value = ""
     login_status_msg = "❌ [FAILED]: কুকি লোড বা লগইন স্ট্যাটাস চেক করা যায়নি।"
@@ -30,7 +31,6 @@ async def generate_proper_playlist():
                 raw_data = json.loads(file_content)
                 cookie_string = raw_data.get("cookies", "")
             except:
-                # যদি JSON সিনট্যাক্স এরর থাকে, তবে টেক্সট থেকে সরাসরি cookies এক্সট্রাক্ট করা
                 import re
                 match = re.search(r'"cookies"\s*:\s*"(.*?)"', file_content)
                 cookie_string = match.group(1) if match else ""
@@ -54,7 +54,6 @@ async def generate_proper_playlist():
             msg = f"⚠️ [ERROR]: {COOKIE_FILE_NAME} ফাইলটি পাওয়া যায়নি!"
             execution_logs.append(f"🔴 {msg}")
             print(msg)
-            login_status_msg = msg
     except Exception as e:
         err_msg = f"❌ [ERROR]: কুকি পড়তে সমস্যা হয়েছে -> {str(e)}"
         execution_logs.append(f"🔴 {err_msg}")
@@ -87,29 +86,18 @@ async def generate_proper_playlist():
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(6000)
 
-            # পেজের সব হরিজন্টাল এবং ভার্টিকাল সেকশন পুরোপুরি স্ক্রোল ও লোড করার উন্নত লজিক
-            await page.evaluate("""async () => {
-                await new Promise((resolve) => {
-                    let totalHeight = 0;
-                    let distance = 300;
-                    let timer = setInterval(() => {
-                        window.scrollBy(0, distance);
-                        totalHeight += distance;
-                        
-                        // হরিজন্টাল স্ক্রোল কন্টেইনারগুলো ডানে স্ক্রোল করা যাতে ভেতরের চ্যানেল লোড হয়
-                        const horizontalContainers = document.querySelectorAll('[class*="scroll"], [class*="slider"], [class*="horizontal"]');
-                        horizontalContainers.forEach(el => {
-                            el.scrollLeft += 300;
+            # নিরাপদ এবং সহজ স্ক্রোলিং লজিক (সিনট্যাক্স এরর মুক্ত)
+            try:
+                for _ in range(8):
+                    await page.evaluate("window.scrollBy(0, 800);")
+                    await page.evaluate("""
+                        document.querySelectorAll('[class*="scroll"], [class*="slider"], [class*="horizontal"]').forEach(el => {
+                            el.scrollLeft += 400;
                         });
-
-                        if (totalHeight >= document.body.scrollHeight - window.innerHeight || totalHeight > 15000) {
-                            clearInterval(timer);
-                            resolve();
-                        }
-                    }, 200);
-                });
-            """)
-            await page.wait_for_timeout(4000)
+                    """)
+                    await page.wait_for_timeout(1500)
+            except:
+                pass
 
             channel_cards = await page.locator("a[href*='/watch/']").all()
             
@@ -140,7 +128,7 @@ async def generate_proper_playlist():
                             return "";
                         }""")
 
-                        # ডামি বা ফালতু নাম ফিল্টার করা (যেমন: "Live Channel" বা খালি নাম)
+                        # ডামি বা ফালতু নাম ফিল্টার করা
                         if not name or "Live Channel" in name or len(name) < 2:
                             continue
 
@@ -166,7 +154,6 @@ async def generate_proper_playlist():
             execution_logs.append(msg_total)
             print(msg_total)
 
-            final_playlist_data = []
             for item in channels_info:
                 stream_link = ""
                 try:
