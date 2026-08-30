@@ -10,19 +10,22 @@ COOKIE_FILE_NAME = "Loging Cookie.json"
 async def generate_proper_playlist():
     print("টফি সাইট থেকে চ্যানেলগুলোর তালিকা সংগ্রহ করা হচ্ছে...")
     
+    execution_logs = []
+    execution_logs.append("╔════════════════════════════════════════════════╗")
+    execution_logs.append("║       TOFFEE AUTO PLAYLIST GENERATOR LOGS      ║")
+    execution_logs.append("╚════════════════════════════════════════════════╝\n")
+    
     channels_info = []
     cookie_name = "Edge-Cache-Cookie"
     cookie_value = ""
     login_status_msg = "❌ [FAILED]: কুকি লোড বা লগইন স্ট্যাটাস চেক করা যায়নি।"
     
-    # ফাইল থেকে কুকি এবং সেশন ডাটা পার্স করার নিরাপদ পদ্ধতি
     cookies_to_add = []
     try:
         if os.path.exists(COOKIE_FILE_NAME):
             with open(COOKIE_FILE_NAME, "r", encoding="utf-8") as f:
                 file_content = f.read().strip()
                 
-            # প্রথমে চেষ্টা করা হবে জেসন হিসেবে পার্স করার
             try:
                 raw_data = json.loads(file_content)
                 cookie_string = raw_data.get("cookies", "")
@@ -37,7 +40,6 @@ async def generate_proper_playlist():
                                     "url": "https://toffeelive.com"
                                 })
                 
-                # লোকালস্টোরেজ থেকে auth_session বা সাবস্ক্রিপশন ডাটা যুক্ত করা
                 local_storage = raw_data.get("localStorage", {})
                 if "auth_session" in local_storage:
                     try:
@@ -52,8 +54,7 @@ async def generate_proper_playlist():
                         pass
 
             except json.JSONDecodeError:
-                # যদি জেসন ফরম্যাটে কোনো সিনট্যাক্স এরর থাকে, তবে র-টেক্সট বা স্ট্রিং হিসেবে কুকি রিড করা হবে
-                print("⚠️ জেসন ফরম্যাটে সিনট্যাক্স এরর পাওয়া গেছে, র-টেক্সট থেকে কুকি রিড করা হচ্ছে...")
+                execution_logs.append("⚠️ [WARNING]: জেসন ফরম্যাটে সিনট্যাক্স এরর পাওয়া গেছে, র-টেক্সট থেকে কুকি রিড করা হচ্ছে...")
                 for item in file_content.split(";"):
                     if "=" in item:
                         parts = item.strip().split("=", 1)
@@ -65,13 +66,18 @@ async def generate_proper_playlist():
                             })
 
             login_status_msg = "🎉 [SUCCESS]: প্রিমিয়াম সেশন এবং কুকি ফাইল থেকে সফলভাবে লোড হয়েছে!"
+            execution_logs.append(f"🟢 {login_status_msg}")
             print(login_status_msg)
         else:
-            print(f"⚠️ {COOKIE_FILE_NAME} ফাইলটি পাওয়া যায়নি!")
-            login_status_msg = f"❌ [ERROR]: {COOKIE_FILE_NAME} ফাইলটি পাওয়া যায়নি।"
+            msg = f"⚠️ [ERROR]: {COOKIE_FILE_NAME} ফাইলটি পাওয়া যায়নি!"
+            execution_logs.append(f"🔴 {msg}")
+            print(msg)
+            login_status_msg = msg
     except Exception as e:
-        print("❌ কুকি পড়তে সমস্যা হয়েছে:", e)
-        login_status_msg = f"❌ [ERROR]: {str(e)}"
+        err_msg = f"❌ [ERROR]: কুকি পড়তে সমস্যা হয়েছে -> {str(e)}"
+        execution_logs.append(f"🔴 {err_msg}")
+        print(err_msg)
+        login_status_msg = err_msg
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(
@@ -83,24 +89,23 @@ async def generate_proper_playlist():
             viewport={"width": 1280, "height": 800}
         )
         
-        # ব্রাউজারে কুকিগুলো ইনজেক্ট করা
         if cookies_to_add:
             try:
                 await context.add_cookies(cookies_to_add)
+                execution_logs.append("🟢 [INFO]: ব্রাউজারে সফলভাবে কুকি ইনজেক্ট করা হয়েছে।")
             except Exception as e:
-                print("ব্রাউজারে কুকি সেট করার সময় ত্রুটি:", e)
+                execution_logs.append(f"🔴 [ERROR]: ব্রাউজারে কুকি সেট করার সময় ত্রুটি -> {e}")
         
         page = await context.new_page()
         
-        # পারফরম্যান্স বাড়ানোর জন্য ছবি, ফন্ট এবং স্টাইলশিট ব্লক করা
         await page.route("**/*", lambda route: route.continue_() if route.request.resource_type not in ["image", "media", "font", "stylesheet"] else route.abort())
 
         try:
             main_url = "https://toffeelive.com/en/live"
+            execution_logs.append(f"🔵 [NAVIGATE]: মূল পেজ লোড হচ্ছে ({main_url})...")
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(5000)
 
-            # পেজের নিচ পর্যন্ত স্ক্রোল করে সব চ্যানেল লোড করা
             previous_height = await page.evaluate("document.body.scrollHeight")
             while True:
                 await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
@@ -132,8 +137,27 @@ async def generate_proper_playlist():
                     try:
                         img_elem = card.locator("img").first
                         if await img_elem.count() > 0:
-                            logo = await img_elem.get_attribute("src")
-                    except:
+                            src = await img_elem.get_attribute("src")
+                            if src and src.startswith("http"):
+                                logo = src
+                            elif src:
+                                logo = f"https://toffeelive.com{src}"
+                        
+                        if logo == "https://assets-prod.services.toffeelive.com/logo.webp":
+                            bg_style = await card.evaluate("""el => {
+                                const img = el.querySelector('img');
+                                if (img) return img.currentSrc || img.src;
+                                
+                                const bg = window.getComputedStyle(el).backgroundImage;
+                                if (bg && bg !== 'none') {
+                                    const match = bg.match(/url\\(['"]?(.*?)['"]?\\)/);
+                                    return match ? match[1] : null;
+                                }
+                                return null;
+                            }""")
+                            if bg_style and bg_style.startswith("http"):
+                                logo = bg_style
+                    except Exception as logo_err:
                         pass
 
                     channels_info.append({
@@ -142,7 +166,9 @@ async def generate_proper_playlist():
                         "watch_url": watch_url
                     })
 
-            print(f"মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। প্রিমিয়াম স্ট্রিম লিংক সংগ্রহ করা হচ্ছে...")
+            msg_total = f"🟢 [INFO]: মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। প্রিমিয়াম স্ট্রিম লিংক সংগ্রহ শুরু হচ্ছে..."
+            execution_logs.append(msg_total)
+            print(msg_total)
 
             final_playlist_data = []
             for item in channels_info:
@@ -150,53 +176,77 @@ async def generate_proper_playlist():
                 try:
                     new_page = await context.new_page()
                     
-                    # প্রাইমারি মেথড: নেটওয়ার্ক রিকোয়েস্ট ইন্টারসেপ্ট করা (.m3u8 খোঁজা)
+                    # প্রাইমারি মেথড: নেটওয়ার্ক রিকোয়েস্ট ইন্টারসেপ্ট করা (.m3u8 বা স্ট্রিম ম্যানিফেস্ট খোঁজা)
                     def intercept(req):
                         nonlocal stream_link
                         url = req.url
-                        if ".m3u8" in url or "playlist" in url or "manifest" in url:
-                            stream_link = url
+                        if ".m3u8" in url or "playlist" in url or "manifest" in url or "stream" in url:
+                            if not stream_link and ("m3u8" in url or "manifest" in url):
+                                stream_link = url
 
                     new_page.on("request", intercept)
-                    await new_page.goto(item['watch_url'], timeout=30000)
                     
-                    # প্রিমিয়াম লিংক ধরার জন্য পর্যাপ্ত সময় অপেক্ষা করা
+                    # বিকল্প নেটওয়ার্ক ট্রাফিক রেসপন্স ক্যাপচার করার মেথড (API/JSON রেসপন্স থেকে লিংক এক্সট্রাক্ট করা)
+                    async def handle_response(response):
+                        nonlocal stream_link
+                        if not stream_link:
+                            try:
+                                res_url = response.url
+                                if "api" in res_url or "channel" in res_url or "player" in res_url:
+                                    content_type = response.headers.get("content-type", "")
+                                    if "json" in content_type:
+                                        body = await response.text()
+                                        if ".m3u8" in body:
+                                            # বডি থেকে .m3u8 লিংকটি কুড়িয়ে নেওয়া
+                                            import re
+                                            match = re.search(r'https?://[^\s"\']+\.m3u8[^\s"^\']*', body)
+                                            if match:
+                                                stream_link = match.group(0).replace('\\/', '/')
+                            except:
+                                pass
+
+                    new_page.on("response", handle_response)
+                    
+                    await new_page.goto(item['watch_url'], timeout=30000)
                     await new_page.wait_for_timeout(6000) 
 
-                    # সেকেন্ডারি ফলব্যাক মেথড: নেটওয়ার্কে লিংক না পেলে DOM / JS থেকে সোর্স স্ক্যান করা
+                    # যদি উপরোক্ত উপায়েও লিংক না পাওয়া যায়, তবে ব্রাউজারের উইন্ডো অবজেক্ট বা লোকাল স্টোরেজ স্ক্যান করা
                     if not stream_link:
-                        print(f"⚠️ নেটওয়ার্কে লিংক মেলেনি ({item['channel_name']}), DOM/JS ফলব্যাক মেথড চেষ্টা করা হচ্ছে...")
+                        execution_logs.append(f"🟡 [FALLBACK]: নেটওয়ার্কে সরাসরি লিংক মেলেনি ({item['channel_name']}), অ্যাডভান্সড পলিসিং মেথড চেষ্টা করা হচ্ছে...")
                         try:
-                            # ভিডিও এলিমেন্ট অথবা প্লেয়ার সোর্স থেকে লিংক খোঁজা
-                            dom_stream = await new_page.evaluate("""() => {
-                                // ১. ভিডিও ট্যাগ চেক করা
-                                const video = document.querySelector('video');
-                                if (video && video.src && video.src.includes('.m3u8')) {
-                                    return video.src;
+                            advanced_stream = await new_page.evaluate("""() => {
+                                // ১. উইন্ডো গ্লোবাল ভ্যারিয়েবল বা প্লেয়ার ইনস্ট্যান্স চেক করা
+                                if (window.__NEXT_DATA__ && window.__NEXT_DATA__.props) {
+                                    try {
+                                        const pageProps = window.__NEXT_DATA__.props.pageProps;
+                                        // যদি ডেটার ভেতরে লিংক থাকে
+                                        const strData = JSON.stringify(pageProps);
+                                        const m = strData.match(/https?:\\/\\/[^\\s"']+\\.m3u8[^\\s"']*/);
+                                        if (m) return m[0].replace(/\\\\/g, '');
+                                    } catch(e) {}
                                 }
-                                // ২. সোর্স ট্যাগ চেক করা
-                                const source = document.querySelector('source');
-                                if (source && source.src && source.src.includes('.m3u8')) {
-                                    return source.src;
-                                }
-                                // ৩. পেজের স্ক্রিপ্ট বা গ্লোবাল অবজেক্ট থেকে .m3u8 লিংক এক্সট্রাক্ট করা
-                                const htmlContent = document.documentElement.innerHTML;
-                                const match = htmlContent.match(/https?:\\/\\/[^\\s"']+\\.m3u8[^\\s"']*/);
-                                if (match) {
-                                    return match[0].replace(/\\\\/g, '');
+                                
+                                // ২. যেকোনো স্ক্রিপ্ট ট্যাগ থেকে .m3u8 বা স্ট্রিম লিংক খোঁজা
+                                const scripts = document.querySelectorAll('script');
+                                for (let s of scripts) {
+                                    const txt = s.textContent || s.innerText;
+                                    if (txt && txt.includes('.m3u8')) {
+                                        const match = txt.match(/https?:\\/\\/[^\\s"']+\\.m3u8[^\\s"']*/);
+                                        if (match) return match[0].replace(/\\\\/g, '');
+                                    }
                                 }
                                 return "";
                             }""")
                             
-                            if dom_stream:
-                                stream_link = dom_stream
-                                print(f"✅ DOM ফলব্যাক থেকে লিংক পাওয়া গেছে!")
-                        except Exception as dom_err:
-                            print(f"DOM ফলব্যাক এরর: {dom_err}")
+                            if advanced_stream:
+                                stream_link = advanced_stream
+                                execution_logs.append(f"🟢 [SUCCESS]: অ্যাডভান্সড ফলব্যাক থেকে লিংক পাওয়া গেছে ({item['channel_name']})!")
+                        except Exception as adv_err:
+                            execution_logs.append(f"🔴 [ERROR]: অ্যাডভান্সড ফলব্যাক এরর ({item['channel_name']}) -> {adv_err}")
 
                     await new_page.close()
                 except Exception as e:
-                    print(f"লিংক সংগ্রহে সমস্যা ({item['channel_name']}):", e)
+                    execution_logs.append(f"🔴 [ERROR]: লিংক সংগ্রহে সমস্যা ({item['channel_name']}) -> {e}")
 
                 final_stream = stream_link if stream_link else item['watch_url']
                 
@@ -206,7 +256,6 @@ async def generate_proper_playlist():
                     "stream_link": final_stream
                 })
 
-            # ব্রাউজার থেকে Edge-Cache-Cookie সংগ্রহ করা
             cookies = await context.cookies()
             for cookie in cookies:
                 if cookie["name"] == "Edge-Cache-Cookie":
@@ -215,19 +264,19 @@ async def generate_proper_playlist():
                     break
 
         except Exception as e:
-            print("মূল ব্রাউজার ত্রুটি:", e)
+            err_msg = f"🔴 [CRITICAL ERROR]: মূল ব্রাউজার ত্রুটি -> {e}"
+            execution_logs.append(err_msg)
+            print(err_msg)
         finally:
             await browser.close()
 
-    # লগইন স্ট্যাটাস টেক্সট ফাইলে সেভ করা
+    execution_logs.append("🟢 [SUCCESS]: M3U ফাইল এবং প্লেলিস্ট সফলভাবে প্রসেস করা হয়েছে!")
+
     with open(STATUS_FILE_NAME, "w", encoding="utf-8") as sf:
-        sf.write("Toffee Premium Login Status Report\n")
-        sf.write("========================================\n")
-        sf.write(f"{login_status_msg}\n")
+        sf.write("\n".join(execution_logs))
 
-    print(f"✅ M3U ফাইল এবং লগইন স্ট্যাটাস ফাইল তৈরি করা হচ্ছে...")
+    print(f"✅ M3U ফাইল এবং স্ট্যাটাস রিপোর্ট ফাইল সফলভাবে তৈরি করা হয়েছে!")
 
-    # M3U ফাইল তৈরি করা
     m3u_content = "#EXTM3U\n"
     for item in final_playlist_data:
         cookie_string = f"{cookie_name}={cookie_value}" if cookie_value else "Edge-Cache-Cookie="
