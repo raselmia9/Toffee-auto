@@ -8,21 +8,27 @@ STATUS_FILE_NAME = "login_status.txt"
 COOKIE_FILE_NAME = "Loging Cookie.json"
 PREMIUM_JSON_FILE = "Premium_channel_List.json"
 
-# জেসন ফাইল থেকে প্রিমিয়াম চ্যানেল লিস্ট লোড করার ফাংশন
-def load_premium_channels():
+# জেসন ফাইল থেকে প্রিমিয়াম চ্যানেল লিস্ট লোড এবং ডিকশনারি রূপান্তর করার ফাংশন
+def load_premium_channels_dict():
+    premium_dict = {}
     if os.path.exists(PREMIUM_JSON_FILE):
         try:
             with open(PREMIUM_JSON_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                for ch in data:
+                    if "name" in ch and "url" in ch:
+                        # নামকে ছোট হাতের ও স্পেস ট্রিম করে কি (Key) হিসেবে রাখা হলো যাতে হুবহু মিলে যায়
+                        clean_name = ch["name"].strip().lower()
+                        premium_dict[clean_name] = ch["url"]
         except Exception as e:
             print(f"⚠️ [WARNING]: প্রিমিয়াম জেসন ফাইল পড়তে সমস্যা হয়েছে -> {e}")
-    return []
+    return premium_dict
 
 async def generate_proper_playlist():
     print("টফি সাইট থেকে চ্যানেলগুলোর তালিকা সংগ্রহ করা হচ্ছে...")
     
-    # ব্যাকআপের জন্য প্রিমিয়াম চ্যানেলগুলো লোড করা হলো
-    premium_channels = load_premium_channels()
+    # প্রিমিয়াম চ্যানেলগুলোকে ফাস্ট লুকআপের জন্য ডিকশনারিতে লোড করা হলো
+    premium_dict = load_premium_channels_dict()
     
     execution_logs = []
     execution_logs.append("╔════════════════════════════════════════════════╗")
@@ -92,26 +98,23 @@ async def generate_proper_playlist():
         
         page = await context.new_page()
         
-        # গতি বাড়ানোর জন্য ইমেজ এবং ফন্ট রিকোয়েস্ট ব্লক করা হলো
-        await page.route("**/*", lambda route: route.continue_() if route.request.resource_type not in ["image", "media", "font", "stylesheet"] else route.abort())
+        await page.route("**/*", lambda route: route.continue_() if route.request.resource_type not in ["media", "font", "stylesheet"] else route.abort())
 
         try:
             main_url = "https://toffeelive.com/en/live"
             execution_logs.append(f"🔵 [NAVIGATE]: মূল পেজ লোড হচ্ছে ({main_url})...")
             await page.goto(main_url, timeout=60000)
-            await page.wait_for_timeout(4000)
-
-            # দ্রুত স্ক্রোলিং লজিক (সব ক্যাটাগরি লোড করার জন্য)
-            try:
-                for i in range(12):
-                    await page.evaluate("window.scrollBy(0, 1200);")
-                    await page.wait_for_timeout(1000)
-            except:
-                pass
+            await page.wait_for_timeout(6000)
 
             try:
-                await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
-                await page.wait_for_timeout(2000)
+                for _ in range(8):
+                    await page.evaluate("window.scrollBy(0, 800);")
+                    await page.evaluate("""
+                        document.querySelectorAll('[class*="scroll"], [class*="slider"], [class*="horizontal"]').forEach(el => {
+                            el.scrollLeft += 400;
+                        });
+                    """)
+                    await page.wait_for_timeout(1500)
             except:
                 pass
 
@@ -164,23 +167,21 @@ async def generate_proper_playlist():
                 except:
                     pass
 
-            msg_total = f"🟢 [INFO]: মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক সংগ্রহ শুরু হচ্ছে..."
+            msg_total = f"🟢 [INFO]: মোট {len(channels_info)} টি সঠিক চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক সংগ্রহ শুরু হচ্ছে..."
             execution_logs.append(msg_total)
             print(msg_total)
 
-            # চ্যানেলগুলোর লিংক বের করা বা ব্যাকআপ থেকে নেওয়ার সঠিক লজিক
             for item in channels_info:
-                stream_link = ""
+                final_stream = ""
+                channel_key = item['channel_name'].strip().lower()
                 
-                # ১. প্রথমে নিখুঁতভাবে চেক করা হচ্ছে চ্যানেলটি প্রিমিয়াম জেসন লিস্টে আছে কিনা
-                matched_backup = next((ch["url"] for ch in premium_channels if ch["name"].strip().lower() == item['channel_name'].strip().lower()), None)
-                
-                if matched_backup:
-                    # যদি জেসন লিস্টে থাকে, তবে সাইটে রিকোয়েস্ট করে সময় নষ্ট না করে সরাসরি ব্যাকআপ লিংক ব্যবহার করা হবে
-                    final_stream = matched_backup
-                    execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' চ্যানেলটি JSON ব্যাকআপ লিস্ট থেকে সফলভাবে নেওয়া হয়েছে।")
+                # সবচেয়ে নিখুঁত ও নিশ্চিত চেক: জেসন ডিকশনারিতে চ্যানেলটি আছে কি না
+                if channel_key in premium_dict:
+                    final_stream = premium_dict[channel_key]
+                    execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' চ্যানেলটি JSON ব্যাকআপ লিস্ট থেকে নেওয়া হয়েছে।")
                 else:
-                    # ২. সাধারণ চ্যানেলের জন্য সাইট থেকে লিংক খোঁজা হবে
+                    # সাধারণ চ্যানেলের জন্য সাইট থেকে লিংক খোঁজা হবে
+                    stream_link = ""
                     try:
                         new_page = await context.new_page()
                         
@@ -193,8 +194,8 @@ async def generate_proper_playlist():
 
                         new_page.on("request", intercept)
                         
-                        await new_page.goto(item['watch_url'], timeout=20000)
-                        await new_page.wait_for_timeout(2000) 
+                        await new_page.goto(item['watch_url'], timeout=30000)
+                        await new_page.wait_for_timeout(4000) 
 
                         if not stream_link:
                             try:
@@ -219,32 +220,17 @@ async def generate_proper_playlist():
                     except Exception as e:
                         pass
 
-                    # এখানে যদি সাইট থেকেও লিংক না পাওয়া যায়, তবুও জেসন ব্যাকআপে রি-চেক করা হবে যেন মিস না হয়
                     if stream_link:
                         final_stream = stream_link
                     else:
-                        # যদি কোনো কারণে ওয়াচ পেজ থেকেও m3u8 না পাওয়া যায়, তবে শেষবারের মতো ব্যাকআপ চেক করা হচ্ছে
-                        if matched_backup:
-                            final_stream = matched_backup
-                            execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' ওয়াচ পেজে লিংক না পাওয়ায় JSON ব্যাকআপ থেকে নেওয়া হয়েছে।")
-                        else:
-                            final_stream = item['watch_url']
-
+                        final_stream = item['watch_url']
+                        execution_logs.append(f"⚠️ [WARNING]: '{item['channel_name']}' এর কোনো স্ট্রিম লিংক পাওয়া যায়নি, ওয়াচ ইউআরএল বসানো হয়েছে।")
+                
                 final_playlist_data.append({
                     "channel_name": item['channel_name'],
                     "logo": item['logo'],
                     "stream_link": final_stream
                 })
-
-            # ৩. জেসন ফাইলের এমন কোনো চ্যানেল যদি থাকে যা মূল পেজে স্ক্র্যাপ হয়নি, সেগুলোকে ফালব্যাক হিসেবে শেষে যুক্ত করা
-            for pch in premium_channels:
-                if not any(pch["name"].strip().lower() == existing["channel_name"].strip().lower() for existing in final_playlist_data):
-                    final_playlist_data.append({
-                        "channel_name": pch["name"],
-                        "logo": "https://assets-prod.services.toffeelive.com/logo.webp",
-                        "stream_link": pch["url"]
-                    })
-                    execution_logs.append(f"🔄 [BACKUP]: '{pch['name']}' মূল পেজে না পাওয়ায় JSON থেকে সরাসরি যুক্ত করা হয়েছে।")
 
             cookies = await context.cookies()
             for cookie in cookies:
