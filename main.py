@@ -186,12 +186,25 @@ async def generate_proper_playlist():
                     const href = card.getAttribute("href");
                     if (!href) return;
 
+                    // উন্নত ক্যাটাগরি বা গ্রুপ টাইটেল খোঁজার লজিক
                     let groupTitle = "[LIVE] BDIX ♛";
-                    let parent = card.closest('section') || card.closest('div[class*="category"]') || card.closest('div[class*="slider"]');
-                    if (parent) {
-                        let header = parent.querySelector('h2, h3, h4, span[class*="title"]');
-                        if (header && header.innerText.trim().length > 0) {
+                    
+                    // কার্ডের পূর্ববর্তী হেডিং বা সেকশন টাইটেল খোঁজা
+                    let container = card.closest('div[class*="section"], div[class*="category"], div[class*="slider"], section, div');
+                    if (container) {
+                        // উপরের দিকে বা কন্টেইনারের ভেতর হেডিং খোঁজা
+                        let header = container.querySelector('h1, h2, h3, h4, span[class*="title"], div[class*="title"]');
+                        if (header && header.innerText.trim().length > 0 && header.innerText.trim().length < 50) {
                             groupTitle = header.innerText.trim();
+                        } else {
+                            // যদি সরাসরি না পাওয়া যায়, তবে তার আগের ভাইলিং (previous sibling) বা প্যারেন্টের হেডিং দেখা
+                            let prev = container.previousElementSibling;
+                            if (prev) {
+                                let prevHeader = prev.querySelector('h1, h2, h3, h4, span, div');
+                                if (prevHeader && prevHeader.innerText.trim().length > 0 && prevHeader.innerText.trim().length < 50) {
+                                    groupTitle = prevHeader.innerText.trim();
+                                }
+                            }
                         }
                     }
 
