@@ -21,7 +21,7 @@ def load_premium_channels():
 async def generate_proper_playlist():
     print("টফি সাইট থেকে চ্যানেলগুলোর তালিকা সংগ্রহ করা হচ্ছে...")
     
-    # ব্যাকআপের জন্য প্রিমিয়াম চ্যানেলগুলো আগে থেকেই লোড করে রাখা হলো
+    # ব্যাকআপের জন্য প্রিমিয়াম চ্যানেলগুলো লোড করা হলো
     premium_channels = load_premium_channels()
     
     execution_logs = []
@@ -92,31 +92,26 @@ async def generate_proper_playlist():
         
         page = await context.new_page()
         
-        await page.route("**/*", lambda route: route.continue_() if route.request.resource_type not in ["media", "font", "stylesheet"] else route.abort())
+        # গতি বাড়ানোর জন্য ইমেজ এবং ফন্ট রিকোয়েস্ট ব্লক করা হলো
+        await page.route("**/*", lambda route: route.continue_() if route.request.resource_type not in ["image", "media", "font", "stylesheet"] else route.abort())
 
         try:
             main_url = "https://toffeelive.com/en/live"
             execution_logs.append(f"🔵 [NAVIGATE]: মূল পেজ লোড হচ্ছে ({main_url})...")
             await page.goto(main_url, timeout=60000)
-            await page.wait_for_timeout(6000)
+            await page.wait_for_timeout(4000)
 
-            # উন্নত ও দীর্ঘ স্ক্রোলিং লজিক (সব ক্যাটাগরি ও চ্যানেল লোড করার জন্য)
+            # দ্রুত স্ক্রোলিং লজিক (সব ক্যাটাগরি লোড করার জন্য)
             try:
-                for i in range(15):
-                    await page.evaluate("window.scrollBy(0, 1000);")
-                    await page.evaluate("""
-                        document.querySelectorAll('[class*="scroll"], [class*="slider"], [class*="horizontal"]').forEach(el => {
-                            el.scrollLeft += 400;
-                        });
-                    """)
-                    await page.wait_for_timeout(2000)
+                for i in range(12):
+                    await page.evaluate("window.scrollBy(0, 1200);")
+                    await page.wait_for_timeout(1000)
             except:
                 pass
 
-            # পেজের একদম শেষ মাথা পর্যন্ত গিয়ে কন্টেন্ট রেন্ডার নিশ্চিত করার লজিক
             try:
                 await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
-                await page.wait_for_timeout(3000)
+                await page.wait_for_timeout(2000)
             except:
                 pass
 
@@ -169,67 +164,81 @@ async def generate_proper_playlist():
                 except:
                     pass
 
-            msg_total = f"🟢 [INFO]: মোট {len(channels_info)} টি সঠিক চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক সংগ্রহ শুরু হচ্ছে..."
+            msg_total = f"🟢 [INFO]: মোট {len(channels_info)} টি চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক সংগ্রহ শুরু হচ্ছে..."
             execution_logs.append(msg_total)
             print(msg_total)
 
+            # ট্র্যাক করার জন্য জেসন ফাইলের নামগুলো লোড করে রাখা
+            scraped_channel_names = {item['channel_name'].strip().lower() for item in channels_info}
+
+            # চ্যানেলগুলোর লিংক বের করা বা ব্যাকআপ থেকে নেওয়ার লজিক
             for item in channels_info:
                 stream_link = ""
-                try:
-                    new_page = await context.new_page()
-                    
-                    def intercept(req):
-                        nonlocal stream_link
-                        url = req.url
-                        if ".m3u8" in url or "manifest" in url:
-                            if not stream_link:
-                                stream_link = url
-
-                    new_page.on("request", intercept)
-                    
-                    await new_page.goto(item['watch_url'], timeout=30000)
-                    await new_page.wait_for_timeout(4000) 
-
-                    if not stream_link:
-                        try:
-                            new_secondary_stream = await new_page.evaluate("""() => {
-                                const html = document.documentElement.innerHTML;
-                                const regex = /https?:\\/\\/[^\\s"']+\\.m3u8[^\\s"']*/g;
-                                const matches = html.match(regex);
-                                if (matches && matches.length > 0) {
-                                    return matches[0].replace(/\\\\/g, '');
-                                }
-                                const v = document.querySelector('video');
-                                if (v && v.src) return v.src;
-                                return "";
-                            }""")
-                            
-                            if new_secondary_stream:
-                                stream_link = new_secondary_stream
-                        except:
-                            pass
-
-                    await new_page.close()
-                except Exception as e:
-                    pass
-
-                # ব্যাকআপ লজিক: লাইভ স্ট্রিম লিংক না পেলে জেসন থেকে বসানো
-                final_stream = ""
-                if stream_link:
-                    final_stream = stream_link
-                else:
-                    matched_backup = next((ch["url"] for ch in premium_channels if ch["name"].strip().lower() == item['channel_name'].strip().lower()), None)
-                    if matched_backup:
-                        final_stream = matched_backup
-                        execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' এর লাইভ লিংক না পেয়ে JSON থেকে ব্যাকআপ লিংক ব্যবহার করা হয়েছে।")
-                    else:
-                        final_stream = item['watch_url']
                 
+                # প্রথমে চেক করা যাক চ্যানেলটি আমাদের প্রিমিয়াম জেসন লিস্টে আছে কিনা
+                matched_backup = next((ch["url"] for ch in premium_channels if ch["name"].strip().lower() == item['channel_name'].strip().lower()), None)
+                
+                if matched_backup:
+                    # যদি প্রিমিয়াম লিস্টে থাকে, তবে সাইটে রিকোয়েস্ট করে সময় নষ্ট না করে সরাসরি ব্যাকআপ লিংক ব্যবহার করা হবে এবং স্ট্যাটাসে লগ থাকবে!
+                    final_stream = matched_backup
+                    execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' চ্যানেলটি JSON ব্যাকআপ লিস্ট থেকে নেওয়া হয়েছে।")
+                else:
+                    # সাধারণ চ্যানেলের জন্য সাইট থেকে লিংক খোঁজা হবে
+                    try:
+                        new_page = await context.new_page()
+                        
+                        def intercept(req):
+                            nonlocal stream_link
+                            url = req.url
+                            if ".m3u8" in url or "manifest" in url:
+                                if not stream_link:
+                                    stream_link = url
+
+                        new_page.on("request", intercept)
+                        
+                        await new_page.goto(item['watch_url'], timeout=20000)
+                        await new_page.wait_for_timeout(2000) 
+
+                        if not stream_link:
+                            try:
+                                new_secondary_stream = await new_page.evaluate("""() => {
+                                    const html = document.documentElement.innerHTML;
+                                    const regex = /https?:\\/\\/[^\\s"']+\\.m3u8[^\\s"']*/g;
+                                    const matches = html.match(regex);
+                                    if (matches && matches.length > 0) {
+                                        return matches[0].replace(/\\\\/g, '');
+                                    }
+                                    const v = document.querySelector('video');
+                                    if (v && v.src) return v.src;
+                                    return "";
+                                }""")
+                                
+                                if new_secondary_stream:
+                                    stream_link = new_secondary_stream
+                            except:
+                                pass
+
+                        await new_page.close()
+                    except Exception as e:
+                        pass
+
+                    final_stream = stream_link if stream_link else item['watch_url']
+
                 final_playlist_data.append({
                     "channel_name": item['channel_name'],
                     "logo": item['logo'],
                     "stream_link": final_stream
                 })
+
+            # জেসন ফাইলের এমন কোনো চ্যানেল যদি থাকে যা মূল পেজের কার্ডে স্ক্র্যাপ হয়নি, সেগুলোকে ফালব্যাক হিসেবে শেষে যুক্ত করে দেওয়া এবং লগে রাখা
+            for pch in premium_channels:
+                if not any(pch["name"].strip().lower() == existing["channel_name"].strip().lower() for existing in final_playlist_data):
+                    final_playlist_data.append({
+                        "channel_name": pch["name"],
+                        "logo": "https://assets-prod.services.toffeelive.com/logo.webp",
+                        "stream_link": pch["url"]
+                    })
+                    execution_logs.append(f"🔄 [BACKUP]: '{pch['name']}' মূল পেজে না পাওয়ায় JSON থেকে সরাসরি ব্যাকআপ যুক্ত করা হয়েছে।")
 
             cookies = await context.cookies()
             for cookie in cookies:
