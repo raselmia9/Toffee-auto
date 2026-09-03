@@ -10,19 +10,86 @@ PREMIUM_JSON_FILE = "Premium_channel_List.json"
 
 # জেসন ফাইল থেকে প্রিমিয়াম চ্যানেল লিস্ট লোড করার ফাংশন
 def load_premium_channels():
+    premium_dict = {}
     if os.path.exists(PREMIUM_JSON_FILE):
         try:
             with open(PREMIUM_JSON_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                for ch in data:
+                    if "name" in ch and "url" in ch:
+                        premium_dict[ch["name"].strip().lower()] = ch["url"]
         except Exception as e:
             print(f"⚠️ [WARNING]: প্রিমিয়াম জেসন ফাইল পড়তে সমস্যা হয়েছে -> {e}")
-    return []
+    return premium_dict
+
+async def process_single_channel(context, item, premium_dict, execution_logs):
+    stream_link = ""
+    channel_name = item['channel_name']
+    channel_key = channel_name.strip().lower()
+    
+    try:
+        new_page = await context.new_page()
+        
+        def intercept(req):
+            nonlocal stream_link
+            url = req.url
+            if ".m3u8" in url or "manifest" in url:
+                if not stream_link:
+                    stream_link = url
+
+        new_page.on("request", intercept)
+        
+        await new_page.goto(item['watch_url'], timeout=30000)
+        await new_page.wait_for_timeout(3500) 
+
+        if not stream_link:
+            try:
+                new_secondary_stream = await new_page.evaluate("""() => {
+                    const html = document.documentElement.innerHTML;
+                    const regex = /https?:\\/\\/[^\\s"']+\\.m3u8[^\\s"']*/g;
+                    const matches = html.match(regex);
+                    if (matches && matches.length > 0) {
+                        return matches[0].replace(/\\\\/g, '');
+                    }
+                    const v = document.querySelector('video');
+                    if (v && v.src) return v.src;
+                    return "";
+                }""")
+                
+                if new_secondary_stream:
+                    stream_link = new_secondary_stream
+            except:
+                pass
+
+        await new_page.close()
+    except Exception as e:
+        execution_logs.append(f"🔴 [ERROR]: '{channel_name}' ওপেন করার সময় সমস্যা -> {str(e)}")
+
+    # ফলব্যাক লজিক (লাইভ লিংক না পেলে জেসন ব্যাকআপ)
+    final_stream = ""
+    if stream_link:
+        final_stream = stream_link
+        execution_logs.append(f"🟢 [LIVE]: '{channel_name}' এর লাইভ স্ট্রিম লিংক সফলভাবে পাওয়া গেছে।")
+    else:
+        matched_backup = premium_dict.get(channel_key)
+        if matched_backup:
+            final_stream = matched_backup
+            execution_logs.append(f"🔄 [BACKUP]: '{channel_name}' এর লাইভ লিংক না পেয়ে JSON ব্যাকআপ লিংক ব্যবহার করা হয়েছে।")
+        else:
+            final_stream = item['watch_url']
+            execution_logs.append(f"⚠️ [WARNING]: '{channel_name}' এর কোনো লিংক পাওয়া যায়নি, ওয়াচ ইউআরএল বসানো হয়েছে।")
+    
+    return {
+        "channel_name": channel_name,
+        "logo": item['logo'],
+        "group_title": item.get('group_title', '[LIVE] BDIX ♛'),
+        "stream_link": final_stream
+    }
 
 async def generate_proper_playlist():
     print("টফি সাইট থেকে চ্যানেলগুলোর তালিকা সংগ্রহ করা হচ্ছে...")
     
-    # ব্যাকআপের জন্য প্রিমিয়াম চ্যানেলগুলো আগে থেকেই লোড করে রাখা হলো
-    premium_channels = load_premium_channels()
+    premium_dict = load_premium_channels()
     
     execution_logs = []
     execution_logs.append("╔════════════════════════════════════════════════╗")
@@ -91,7 +158,6 @@ async def generate_proper_playlist():
                 execution_logs.append(f"🔴 [ERROR]: ব্রাউজারে কুকি সেট করার সময় ত্রুটি -> {e}")
         
         page = await context.new_page()
-        
         await page.route("**/*", lambda route: route.continue_() if route.request.resource_type not in ["media", "font", "stylesheet"] else route.abort())
 
         try:
@@ -100,7 +166,7 @@ async def generate_proper_playlist():
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(6000)
 
-            # উন্নত ও দীর্ঘ স্ক্রোলিং লজিক (সব ক্যাটাগরি ও চ্যানেল লোড করার জন্য)
+            # দীর্ঘ স্ক্রোলিং লজিক (সব চ্যানেল নিখুঁতভাবে লোড করার জন্য)
             try:
                 for i in range(15):
                     await page.evaluate("window.scrollBy(0, 1000);")
@@ -113,123 +179,91 @@ async def generate_proper_playlist():
             except:
                 pass
 
-            # পেজের একদম শেষ মাথা পর্যন্ত গিয়ে কন্টেন্ট রেন্ডার নিশ্চিত করার লজিক
             try:
                 await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
                 await page.wait_for_timeout(3000)
             except:
                 pass
 
-            channel_cards = await page.locator("a[href*='/watch/']").all()
-            
+            # চ্যানেল কার্ড এবং ক্যাটাগরি/গ্রুপ টাইটেল এক্সট্র্যাক্ট করার লজিক
+            channels_data = await page.evaluate("""() => {
+                const results = [];
+                const cards = document.querySelectorAll("a[href*='/watch/']");
+                
+                cards.forEach(card => {
+                    const href = card.getAttribute("href");
+                    if (!href) return;
+
+                    // ক্যাটাগরি বা সেকশন হেডার খুঁজে বের করা
+                    let groupTitle = "[LIVE] BDIX ♛";
+                    let parent = card.closest('section') || card.closest('div[class*="category"]') || card.closest('div[class*="slider"]');
+                    if (parent) {
+                        let header = parent.querySelector('h2, h3, h4, span[class*="title"]');
+                        if (header && header.innerText.trim().length > 0) {
+                            groupTitle = header.innerText.trim();
+                        }
+                    }
+
+                    // চ্যানেলের নাম বের করা
+                    let name = "";
+                    const img = card.querySelector('img');
+                    if (img && img.alt && img.alt.trim() !== '') {
+                        name = img.alt.trim();
+                    } else {
+                        const headings = card.querySelectorAll('h3, h4, span, p');
+                        for (let h of headings) {
+                            const t = h.innerText.trim();
+                            if (t.length > 0 && t.length < 40) {
+                                name = t;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!name) {
+                        const text = card.innerText || card.textContent;
+                        if (text) {
+                            const lines = text.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
+                            if (lines.length > 0) name = lines[0];
+                        }
+                    }
+
+                    // লোগো বের করা
+                    let logo = "https://assets-prod.services.toffeelive.com/logo.webp";
+                    if (img && img.getAttribute("src")) {
+                        logo = img.getAttribute("src");
+                    }
+
+                    results.push({
+                        channel_name: name,
+                        logo: logo,
+                        watch_url: href.startsWith("http") ? href : "https://toffeelive.com" + href,
+                        group_title: groupTitle
+                    });
+                });
+                return results;
+            }())
+
             seen_links = set()
-            for card in channel_cards:
-                try:
-                    href = await card.get_attribute("href")
-                    if href and href not in seen_links:
-                        seen_links.add(href)
-                        watch_url = href if href.startswith("http") else f"https://toffeelive.com{href}"
+            for item in channels_data:
+                if item['channel_name'] and "Live Channel" not in item['channel_name'] and len(item['channel_name']) >= 2:
+                    if item['watch_url'] not in seen_links:
+                        seen_links.add(item['watch_url'])
+                        if not item['logo'].startswith("http"):
+                            item['logo'] = f"https://toffeelive.com{item['logo']}"
+                        channels_info.append(item)
 
-                        name = await card.evaluate("""el => {
-                            const img = el.querySelector('img');
-                            if (img && img.alt && img.alt.trim() !== '') {
-                                return img.alt.trim();
-                            }
-                            const headings = el.querySelectorAll('h3, h4, span, p');
-                            for (let h of headings) {
-                                const t = h.innerText.trim();
-                                if (t.length > 0 && t.length < 40) return t;
-                            }
-                            const text = el.innerText || el.textContent;
-                            if (text) {
-                                const lines = text.split('\\n').map(l => l.trim()).filter(l => l.length > 0);
-                                if (lines.length > 0) return lines[0];
-                            }
-                            return "";
-                        }""")
-
-                        if not name or "Live Channel" in name or len(name) < 2:
-                            continue
-
-                        logo = "https://assets-prod.services.toffeelive.com/logo.webp"
-                        try:
-                            img_elem = card.locator("img").first
-                            if await img_elem.count() > 0:
-                                src = await img_elem.get_attribute("src")
-                                if src:
-                                    logo = src if src.startswith("http") else f"https://toffeelive.com{src}"
-                        except:
-                            pass
-
-                        channels_info.append({
-                            "channel_name": name,
-                            "logo": logo,
-                            "watch_url": watch_url
-                        })
-                except:
-                    pass
-
-            msg_total = f"🟢 [INFO]: মোট {len(channels_info)} টি সঠিক চ্যানেল পাওয়া গেছে। স্ট্রিম লিংক সংগ্রহ শুরু হচ্ছে..."
+            msg_total = f"🟢 [INFO]: মোট {len(channels_info)} টি সঠিক চ্যানেল পাওয়া গেছে। প্যারালাললি স্ট্রিম লিংক সংগ্রহ শুরু হচ্ছে..."
             execution_logs.append(msg_total)
             print(msg_total)
 
-            for item in channels_info:
-                stream_link = ""
-                try:
-                    new_page = await context.new_page()
-                    
-                    def intercept(req):
-                        nonlocal stream_link
-                        url = req.url
-                        if ".m3u8" in url or "manifest" in url:
-                            if not stream_link:
-                                stream_link = url
-
-                    new_page.on("request", intercept)
-                    
-                    await new_page.goto(item['watch_url'], timeout=30000)
-                    await new_page.wait_for_timeout(4000) 
-
-                    if not stream_link:
-                        try:
-                            new_secondary_stream = await new_page.evaluate("""() => {
-                                const html = document.documentElement.innerHTML;
-                                const regex = /https?:\\/\\/[^\\s"']+\\.m3u8[^\\s"']*/g;
-                                const matches = html.match(regex);
-                                if (matches && matches.length > 0) {
-                                    return matches[0].replace(/\\\\/g, '');
-                                }
-                                const v = document.querySelector('video');
-                                if (v && v.src) return v.src;
-                                return "";
-                            }""")
-                            
-                            if new_secondary_stream:
-                                stream_link = new_secondary_stream
-                        except:
-                            pass
-
-                    await new_page.close()
-                except Exception as e:
-                    pass
-
-                # ব্যাকআপ লজিক: লাইভ স্ট্রিম লিংক না পেলে জেসন থেকে বসানো
-                final_stream = ""
-                if stream_link:
-                    final_stream = stream_link
-                else:
-                    matched_backup = next((ch["url"] for ch in premium_channels if ch["name"].strip().lower() == item['channel_name'].strip().lower()), None)
-                    if matched_backup:
-                        final_stream = matched_backup
-                        execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' এর লাইভ লিংক না পেয়ে JSON থেকে ব্যাকআপ লিংক ব্যবহার করা হয়েছে।")
-                    else:
-                        final_stream = item['watch_url']
-                
-                final_playlist_data.append({
-                    "channel_name": item['channel_name'],
-                    "logo": item['logo'],
-                    "stream_link": final_stream
-                })
+            # মাল্টি-ট্যাব বা প্যারালাল প্রসেসিং (একসাথে ৫টি করে চ্যানেল প্রসেস হবে যাতে সময় কম লাগে)
+            chunk_size = 5
+            for i in range(0, len(channels_info), chunk_size):
+                chunk = channels_info[i:i + chunk_size]
+                tasks = [process_single_channel(context, item, premium_dict, execution_logs) for item in chunk]
+                results = await asyncio.gather(*tasks)
+                final_playlist_data.extend(results)
 
             cookies = await context.cookies()
             for cookie in cookies:
@@ -256,7 +290,7 @@ async def generate_proper_playlist():
     for item in final_playlist_data:
         cookie_string = f"{cookie_name}={cookie_value}" if cookie_value else "Edge-Cache-Cookie="
         
-        m3u_content += f'\n#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="{item["logo"]}", {item["channel_name"]}\n'
+        m3u_content += f'\n#EXTINF:-1 group-title="{item["group_title"]}" tvg-logo="{item["logo"]}", {item["channel_name"]}\n'
         m3u_content += f"{item['stream_link']}\n"
         m3u_content += f"#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)\n"
         m3u_content += f'#EXTHTTP:{{"cookie":"{cookie_string}"}}\n'
