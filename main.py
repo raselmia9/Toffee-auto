@@ -100,15 +100,23 @@ async def generate_proper_playlist():
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(6000)
 
+            # উন্নত ও দীর্ঘ স্ক্রোলিং লজিক (সব ক্যাটাগরি ও চ্যানেল লোড করার জন্য)
             try:
-                for _ in range(8):
-                    await page.evaluate("window.scrollBy(0, 800);")
+                for i in range(15):
+                    await page.evaluate("window.scrollBy(0, 1000);")
                     await page.evaluate("""
                         document.querySelectorAll('[class*="scroll"], [class*="slider"], [class*="horizontal"]').forEach(el => {
                             el.scrollLeft += 400;
                         });
                     """)
-                    await page.wait_for_timeout(1500)
+                    await page.wait_for_timeout(2000)
+            except:
+                pass
+
+            # পেজের একদম শেষ মাথা পর্যন্ত গিয়ে কন্টেন্ট রেন্ডার নিশ্চিত করার লজিক
+            try:
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+                await page.wait_for_timeout(3000)
             except:
                 pass
 
@@ -205,20 +213,17 @@ async def generate_proper_playlist():
                 except Exception as e:
                     pass
 
-                # ==========================================
                 # ব্যাকআপ লজিক: লাইভ স্ট্রিম লিংক না পেলে জেসন থেকে বসানো
-                # ==========================================
                 final_stream = ""
                 if stream_link:
                     final_stream = stream_link
                 else:
-                    # জেসন লিস্ট থেকে নাম মিলিয়ে ব্যাকআপ লিংক খোঁজা হচ্ছে
                     matched_backup = next((ch["url"] for ch in premium_channels if ch["name"].strip().lower() == item['channel_name'].strip().lower()), None)
                     if matched_backup:
                         final_stream = matched_backup
                         execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' এর লাইভ লিংক না পেয়ে JSON থেকে ব্যাকআপ লিংক ব্যবহার করা হয়েছে।")
                     else:
-                        final_stream = item['watch_url'] # ব্যাকআপেও না পেলে ওয়াচ ইউআরএল বসবে
+                        final_stream = item['watch_url']
                 
                 final_playlist_data.append({
                     "channel_name": item['channel_name'],
