@@ -8,27 +8,21 @@ STATUS_FILE_NAME = "login_status.txt"
 COOKIE_FILE_NAME = "Loging Cookie.json"
 PREMIUM_JSON_FILE = "Premium_channel_List.json"
 
-# জেসন ফাইল থেকে প্রিমিয়াম চ্যানেল লিস্ট লোড এবং ডিকশনারি রূপান্তর করার ফাংশন
-def load_premium_channels_dict():
-    premium_dict = {}
+# জেসন ফাইল থেকে প্রিমিয়াম চ্যানেল লিস্ট লোড করার ফাংশন
+def load_premium_channels():
     if os.path.exists(PREMIUM_JSON_FILE):
         try:
             with open(PREMIUM_JSON_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                for ch in data:
-                    if "name" in ch and "url" in ch:
-                        # নামকে ছোট হাতের ও স্পেস ট্রিম করে কি (Key) হিসেবে রাখা হলো যাতে হুবহু মিলে যায়
-                        clean_name = ch["name"].strip().lower()
-                        premium_dict[clean_name] = ch["url"]
+                return json.load(f)
         except Exception as e:
             print(f"⚠️ [WARNING]: প্রিমিয়াম জেসন ফাইল পড়তে সমস্যা হয়েছে -> {e}")
-    return premium_dict
+    return []
 
 async def generate_proper_playlist():
     print("টফি সাইট থেকে চ্যানেলগুলোর তালিকা সংগ্রহ করা হচ্ছে...")
     
-    # প্রিমিয়াম চ্যানেলগুলোকে ফাস্ট লুকআপের জন্য ডিকশনারিতে লোড করা হলো
-    premium_dict = load_premium_channels_dict()
+    # ব্যাকআপের জন্য প্রিমিয়াম চ্যানেলগুলো আগে থেকেই লোড করে রাখা হলো
+    premium_channels = load_premium_channels()
     
     execution_logs = []
     execution_logs.append("╔════════════════════════════════════════════════╗")
@@ -172,59 +166,61 @@ async def generate_proper_playlist():
             print(msg_total)
 
             for item in channels_info:
+                stream_link = ""
+                try:
+                    new_page = await context.new_page()
+                    
+                    def intercept(req):
+                        nonlocal stream_link
+                        url = req.url
+                        if ".m3u8" in url or "manifest" in url:
+                            if not stream_link:
+                                stream_link = url
+
+                    new_page.on("request", intercept)
+                    
+                    await new_page.goto(item['watch_url'], timeout=30000)
+                    await new_page.wait_for_timeout(4000) 
+
+                    if not stream_link:
+                        try:
+                            new_secondary_stream = await new_page.evaluate("""() => {
+                                const html = document.documentElement.innerHTML;
+                                const regex = /https?:\\/\\/[^\\s"']+\\.m3u8[^\\s"']*/g;
+                                const matches = html.match(regex);
+                                if (matches && matches.length > 0) {
+                                    return matches[0].replace(/\\\\/g, '');
+                                }
+                                const v = document.querySelector('video');
+                                if (v && v.src) return v.src;
+                                return "";
+                            }""")
+                            
+                            if new_secondary_stream:
+                                stream_link = new_secondary_stream
+                        except:
+                            pass
+
+                    await new_page.close()
+                except Exception as e:
+                    pass
+
+                # ==========================================
+                # ব্যাকআপ লজিক: আপনার আগের ফাইলের হুবহু কোড
+                # ==========================================
                 final_stream = ""
-                channel_key = item['channel_name'].strip().lower()
-                
-                # সবচেয়ে নিখুঁত ও নিশ্চিত চেক: জেসন ডিকশনারিতে চ্যানেলটি আছে কি না
-                if channel_key in premium_dict:
-                    final_stream = premium_dict[channel_key]
-                    execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' চ্যানেলটি JSON ব্যাকআপ লিস্ট থেকে নেওয়া হয়েছে।")
+                if stream_link:
+                    final_stream = stream_link
+                    execution_logs.append(f"🟢 [LIVE]: '{item['channel_name']}' এর লাইভ স্ট্রিম লিংক পাওয়া গেছে।")
                 else:
-                    # সাধারণ চ্যানেলের জন্য সাইট থেকে লিংক খোঁজা হবে
-                    stream_link = ""
-                    try:
-                        new_page = await context.new_page()
-                        
-                        def intercept(req):
-                            nonlocal stream_link
-                            url = req.url
-                            if ".m3u8" in url or "manifest" in url:
-                                if not stream_link:
-                                    stream_link = url
-
-                        new_page.on("request", intercept)
-                        
-                        await new_page.goto(item['watch_url'], timeout=30000)
-                        await new_page.wait_for_timeout(4000) 
-
-                        if not stream_link:
-                            try:
-                                new_secondary_stream = await new_page.evaluate("""() => {
-                                    const html = document.documentElement.innerHTML;
-                                    const regex = /https?:\\/\\/[^\\s"']+\\.m3u8[^\\s"']*/g;
-                                    const matches = html.match(regex);
-                                    if (matches && matches.length > 0) {
-                                        return matches[0].replace(/\\\\/g, '');
-                                    }
-                                    const v = document.querySelector('video');
-                                    if (v && v.src) return v.src;
-                                    return "";
-                                }""")
-                                
-                                if new_secondary_stream:
-                                    stream_link = new_secondary_stream
-                            except:
-                                pass
-
-                        await new_page.close()
-                    except Exception as e:
-                        pass
-
-                    if stream_link:
-                        final_stream = stream_link
+                    # জেসন লিস্ট থেকে নাম মিলিয়ে ব্যাকআপ লিংক খোঁজা হচ্ছে
+                    matched_backup = next((ch["url"] for ch in premium_channels if ch["name"].strip().lower() == item['channel_name'].strip().lower()), None)
+                    if matched_backup:
+                        final_stream = matched_backup
+                        execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' এর লাইভ লিংক না পেয়ে JSON থেকে ব্যাকআপ লিংক ব্যবহার করা হয়েছে।")
                     else:
-                        final_stream = item['watch_url']
-                        execution_logs.append(f"⚠️ [WARNING]: '{item['channel_name']}' এর কোনো স্ট্রিম লিংক পাওয়া যায়নি, ওয়াচ ইউআরএল বসানো হয়েছে।")
+                        final_stream = item['watch_url'] # ব্যাকআপেও না পেলে ওয়াচ ইউআরএল বসবে
+                        execution_logs.append(f"⚠️ [WARNING]: '{item['channel_name']}' এর কোনো লিংক পাওয়া যায়নি, ওয়াচ ইউআরএল বসানো হয়েছে।")
                 
                 final_playlist_data.append({
                     "channel_name": item['channel_name'],
