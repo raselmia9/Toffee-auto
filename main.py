@@ -8,26 +8,21 @@ STATUS_FILE_NAME = "login_status.txt"
 COOKIE_FILE_NAME = "Loging Cookie.json"
 PREMIUM_JSON_FILE = "Premium_channel_List.json"
 
-# জেসন ফাইল থেকে প্রিমিয়াম চ্যানেল লিস্ট লোড এবং ফাস্ট লুকআপের জন্য ডিকশনারিতে রূপান্তর করার ফাংশন
-def load_premium_channels_dict():
-    premium_dict = {}
+# জেসন ফাইল থেকে প্রিমিয়াম চ্যানেল লিস্ট লোড করার ফাংশন
+def load_premium_channels():
     if os.path.exists(PREMIUM_JSON_FILE):
         try:
             with open(PREMIUM_JSON_FILE, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                for ch in data:
-                    if "name" in ch and "url" in ch:
-                        clean_name = ch["name"].strip().lower()
-                        premium_dict[clean_name] = ch["url"]
+                return json.load(f)
         except Exception as e:
             print(f"⚠️ [WARNING]: প্রিমিয়াম জেসন ফাইল পড়তে সমস্যা হয়েছে -> {e}")
-    return premium_dict
+    return []
 
 async def generate_proper_playlist():
     print("টফি সাইট থেকে চ্যানেলগুলোর তালিকা সংগ্রহ করা হচ্ছে...")
     
-    # ব্যাকআপের জন্য প্রিমিয়াম চ্যানেলগুলো ডিকশনারি আকারে লোড করা হলো
-    premium_dict = load_premium_channels_dict()
+    # ব্যাকআপের জন্য প্রিমিয়াম চ্যানেলগুলো আগে থেকেই লোড করে রাখা হলো
+    premium_channels = load_premium_channels()
     
     execution_logs = []
     execution_logs.append("╔════════════════════════════════════════════════╗")
@@ -97,7 +92,6 @@ async def generate_proper_playlist():
         
         page = await context.new_page()
         
-        # তৃতীয় স্ক্রিপ্টের মতো নিখুঁত স্ক্রোলিং ও কালেকশন লজিক নিশ্চিত করতে রাউটিং অপ্টিমাইজ করা হলো
         await page.route("**/*", lambda route: route.continue_() if route.request.resource_type not in ["media", "font", "stylesheet"] else route.abort())
 
         try:
@@ -106,16 +100,23 @@ async def generate_proper_playlist():
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(6000)
 
-            # তৃতীয় স্ক্রিপ্টের নিখুঁত স্ক্রোলিং মেথড (যাতে সব ক্যাটাগরি ও চ্যানেল লোড হয়)
+            # উন্নত ও দীর্ঘ স্ক্রোলিং লজিক (সব ক্যাটাগরি ও চ্যানেল লোড করার জন্য)
             try:
-                for _ in range(8):
-                    await page.evaluate("window.scrollBy(0, 800);")
+                for i in range(15):
+                    await page.evaluate("window.scrollBy(0, 1000);")
                     await page.evaluate("""
                         document.querySelectorAll('[class*="scroll"], [class*="slider"], [class*="horizontal"]').forEach(el => {
                             el.scrollLeft += 400;
                         });
                     """)
-                    await page.wait_for_timeout(1500)
+                    await page.wait_for_timeout(2000)
+            except:
+                pass
+
+            # পেজের একদম শেষ মাথা পর্যন্ত গিয়ে কন্টেন্ট রেন্ডার নিশ্চিত করার লজিক
+            try:
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight);")
+                await page.wait_for_timeout(3000)
             except:
                 pass
 
@@ -172,11 +173,8 @@ async def generate_proper_playlist():
             execution_logs.append(msg_total)
             print(msg_total)
 
-            # প্রতিটি চ্যানেলের জন্য ওয়াচ পেজ চেক এবং ব্যাকআপ ডিকশনারি ফলব্যাক লজিক
             for item in channels_info:
                 stream_link = ""
-                channel_key = item['channel_name'].strip().lower()
-                
                 try:
                     new_page = await context.new_page()
                     
@@ -215,22 +213,17 @@ async def generate_proper_playlist():
                 except Exception as e:
                     pass
 
-                # ==========================================
-                # সঠিক ফলব্যাক লজিক: লাইভ পেলে লাইভ, না পেলে ডিকশনারি ব্যাকআপ
-                # ==========================================
+                # ব্যাকআপ লজিক: লাইভ স্ট্রিম লিংক না পেলে জেসন থেকে বসানো
                 final_stream = ""
                 if stream_link:
                     final_stream = stream_link
-                    execution_logs.append(f"🟢 [LIVE]: '{item['channel_name']}' এর লাইভ স্ট্রিম লিংক সফলভাবে পাওয়া গেছে।")
                 else:
-                    # ওয়াচ পেজ থেকে লিংক না পেলে ডিকশনারি ব্যাকআপে খোঁজা হবে
-                    matched_backup = premium_dict.get(channel_key)
+                    matched_backup = next((ch["url"] for ch in premium_channels if ch["name"].strip().lower() == item['channel_name'].strip().lower()), None)
                     if matched_backup:
                         final_stream = matched_backup
-                        execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' এর লাইভ লিংক না পেয়ে JSON ব্যাকআপ থেকে লিংক ব্যবহার করা হয়েছে।")
+                        execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' এর লাইভ লিংক না পেয়ে JSON থেকে ব্যাকআপ লিংক ব্যবহার করা হয়েছে।")
                     else:
-                        final_stream = item['watch_url'] # কোথাও না পেলে ওয়াচ ইউআরএল বসবে
-                        execution_logs.append(f"⚠️ [WARNING]: '{item['channel_name']}' এর কোনো লিংক পাওয়া যায়নি, ওয়াচ ইউআরএল বসানো হয়েছে।")
+                        final_stream = item['watch_url']
                 
                 final_playlist_data.append({
                     "channel_name": item['channel_name'],
