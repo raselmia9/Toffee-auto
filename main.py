@@ -8,7 +8,6 @@ STATUS_FILE_NAME = "login_status.txt"
 COOKIE_FILE_NAME = "Loging Cookie.json"
 PREMIUM_JSON_FILE = "Premium_channel_List.json"
 
-# জেসন ফাইল থেকে প্রিমিয়াম চ্যানেল লিস্ট লোড করার ফাংশন
 def load_premium_channels():
     premium_dict = {}
     if os.path.exists(PREMIUM_JSON_FILE):
@@ -65,7 +64,6 @@ async def process_single_channel(context, item, premium_dict, execution_logs):
     except Exception as e:
         execution_logs.append(f"🔴 [ERROR]: '{channel_name}' ওপেন করার সময় সমস্যা -> {str(e)}")
 
-    # ফলব্যাক লজিক (লাইভ লিংক না পেলে জেসন ব্যাকআপ)
     final_stream = ""
     if stream_link:
         final_stream = stream_link
@@ -166,15 +164,10 @@ async def generate_proper_playlist():
             await page.goto(main_url, timeout=60000)
             await page.wait_for_timeout(6000)
 
-            # দীর্ঘ স্ক্রোলিং লজিক (সব চ্যানেল নিখুঁতভাবে লোড করার জন্য)
             try:
                 for i in range(15):
                     await page.evaluate("window.scrollBy(0, 1000);")
-                    await page.evaluate("""
-                        document.querySelectorAll('[class*="scroll"], [class*="slider"], [class*="horizontal"]').forEach(el => {
-                            el.scrollLeft += 400;
-                        });
-                    """)
+                    await page.evaluate("document.querySelectorAll('[class*=\"scroll\"], [class*=\"slider\"], [class*=\"horizontal\"]').forEach(el => { el.scrollLeft += 400; });")
                     await page.wait_for_timeout(2000)
             except:
                 pass
@@ -185,8 +178,7 @@ async def generate_proper_playlist():
             except:
                 pass
 
-            # চ্যানেল কার্ড এবং ক্যাটাগরি/গ্রুপ টাইটেল এক্সট্র্যাক্ট করার লজিক
-            channels_data = await page.evaluate("""() => {
+            js_script = """() => {
                 const results = [];
                 const cards = document.querySelectorAll("a[href*='/watch/']");
                 
@@ -194,7 +186,6 @@ async def generate_proper_playlist():
                     const href = card.getAttribute("href");
                     if (!href) return;
 
-                    // ক্যাটাগরি বা সেকশন হেডার খুঁজে বের করা
                     let groupTitle = "[LIVE] BDIX ♛";
                     let parent = card.closest('section') || card.closest('div[class*="category"]') || card.closest('div[class*="slider"]');
                     if (parent) {
@@ -204,7 +195,6 @@ async def generate_proper_playlist():
                         }
                     }
 
-                    // চ্যানেলের নাম বের করা
                     let name = "";
                     const img = card.querySelector('img');
                     if (img && img.alt && img.alt.trim() !== '') {
@@ -228,7 +218,6 @@ async def generate_proper_playlist():
                         }
                     }
 
-                    // লোগো বের করা
                     let logo = "https://assets-prod.services.toffeelive.com/logo.webp";
                     if (img && img.getAttribute("src")) {
                         logo = img.getAttribute("src");
@@ -242,7 +231,9 @@ async def generate_proper_playlist():
                     });
                 });
                 return results;
-            }())
+            }"""
+
+            channels_data = await page.evaluate(js_script)
 
             seen_links = set()
             for item in channels_data:
@@ -257,7 +248,6 @@ async def generate_proper_playlist():
             execution_logs.append(msg_total)
             print(msg_total)
 
-            # মাল্টি-ট্যাব বা প্যারালাল প্রসেসিং (একসাথে ৫টি করে চ্যানেল প্রসেস হবে যাতে সময় কম লাগে)
             chunk_size = 5
             for i in range(0, len(channels_info), chunk_size):
                 chunk = channels_info[i:i + chunk_size]
