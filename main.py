@@ -168,22 +168,19 @@ async def generate_proper_playlist():
             execution_logs.append(msg_total)
             print(msg_total)
 
-            # ট্র্যাক করার জন্য জেসন ফাইলের নামগুলো লোড করে রাখা
-            scraped_channel_names = {item['channel_name'].strip().lower() for item in channels_info}
-
-            # চ্যানেলগুলোর লিংক বের করা বা ব্যাকআপ থেকে নেওয়ার লজিক
+            # চ্যানেলগুলোর লিংক বের করা বা ব্যাকআপ থেকে নেওয়ার সঠিক লজিক
             for item in channels_info:
                 stream_link = ""
                 
-                # প্রথমে চেক করা যাক চ্যানেলটি আমাদের প্রিমিয়াম জেসন লিস্টে আছে কিনা
+                # ১. প্রথমে নিখুঁতভাবে চেক করা হচ্ছে চ্যানেলটি প্রিমিয়াম জেসন লিস্টে আছে কিনা
                 matched_backup = next((ch["url"] for ch in premium_channels if ch["name"].strip().lower() == item['channel_name'].strip().lower()), None)
                 
                 if matched_backup:
-                    # যদি প্রিমিয়াম লিস্টে থাকে, তবে সাইটে রিকোয়েস্ট করে সময় নষ্ট না করে সরাসরি ব্যাকআপ লিংক ব্যবহার করা হবে এবং স্ট্যাটাসে লগ থাকবে!
+                    # যদি জেসন লিস্টে থাকে, তবে সাইটে রিকোয়েস্ট করে সময় নষ্ট না করে সরাসরি ব্যাকআপ লিংক ব্যবহার করা হবে
                     final_stream = matched_backup
-                    execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' চ্যানেলটি JSON ব্যাকআপ লিস্ট থেকে নেওয়া হয়েছে।")
+                    execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' চ্যানেলটি JSON ব্যাকআপ লিস্ট থেকে সফলভাবে নেওয়া হয়েছে।")
                 else:
-                    # সাধারণ চ্যানেলের জন্য সাইট থেকে লিংক খোঁজা হবে
+                    # ২. সাধারণ চ্যানেলের জন্য সাইট থেকে লিংক খোঁজা হবে
                     try:
                         new_page = await context.new_page()
                         
@@ -222,7 +219,16 @@ async def generate_proper_playlist():
                     except Exception as e:
                         pass
 
-                    final_stream = stream_link if stream_link else item['watch_url']
+                    # এখানে যদি সাইট থেকেও লিংক না পাওয়া যায়, তবুও জেসন ব্যাকআপে রি-চেক করা হবে যেন মিস না হয়
+                    if stream_link:
+                        final_stream = stream_link
+                    else:
+                        # যদি কোনো কারণে ওয়াচ পেজ থেকেও m3u8 না পাওয়া যায়, তবে শেষবারের মতো ব্যাকআপ চেক করা হচ্ছে
+                        if matched_backup:
+                            final_stream = matched_backup
+                            execution_logs.append(f"🔄 [BACKUP]: '{item['channel_name']}' ওয়াচ পেজে লিংক না পাওয়ায় JSON ব্যাকআপ থেকে নেওয়া হয়েছে।")
+                        else:
+                            final_stream = item['watch_url']
 
                 final_playlist_data.append({
                     "channel_name": item['channel_name'],
@@ -230,7 +236,7 @@ async def generate_proper_playlist():
                     "stream_link": final_stream
                 })
 
-            # জেসন ফাইলের এমন কোনো চ্যানেল যদি থাকে যা মূল পেজের কার্ডে স্ক্র্যাপ হয়নি, সেগুলোকে ফালব্যাক হিসেবে শেষে যুক্ত করে দেওয়া এবং লগে রাখা
+            # ৩. জেসন ফাইলের এমন কোনো চ্যানেল যদি থাকে যা মূল পেজে স্ক্র্যাপ হয়নি, সেগুলোকে ফালব্যাক হিসেবে শেষে যুক্ত করা
             for pch in premium_channels:
                 if not any(pch["name"].strip().lower() == existing["channel_name"].strip().lower() for existing in final_playlist_data):
                     final_playlist_data.append({
@@ -238,7 +244,7 @@ async def generate_proper_playlist():
                         "logo": "https://assets-prod.services.toffeelive.com/logo.webp",
                         "stream_link": pch["url"]
                     })
-                    execution_logs.append(f"🔄 [BACKUP]: '{pch['name']}' মূল পেজে না পাওয়ায় JSON থেকে সরাসরি ব্যাকআপ যুক্ত করা হয়েছে।")
+                    execution_logs.append(f"🔄 [BACKUP]: '{pch['name']}' মূল পেজে না পাওয়ায় JSON থেকে সরাসরি যুক্ত করা হয়েছে।")
 
             cookies = await context.cookies()
             for cookie in cookies:
