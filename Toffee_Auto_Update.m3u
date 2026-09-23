@@ -1,4 +1,6 @@
 #EXTM3U
+#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/kK2aX5UBrjBfS2_RBcKf/posters/ba5dd8dc-4f87-414a-b57f-c9ecdeda5253.png", Zee Bangla
+https://backend.plusbox.tv/GaziTVHD/tracks-v1/index.fmp4.m3u8?token=c452304e0466f82452599401c0be600faff37aa9-8f57dfc05f2e344a179be1d0678bf133-1790199900-1790189100
 
 #EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/kK2aX5UBrjBfS2_RBcKf/posters/ba5dd8dc-4f87-414a-b57f-c9ecdeda5253.png", Zee Bangla
 https://bldcmprod-cdn.toffeelive.com/cdn/live/zee_bangla/playlist.m3u8?nocache=1788083088473
