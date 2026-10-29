@@ -105,6 +105,11 @@ https://toffeelive.com/en/watch/WyPuDJsBEef-9-uVUA_z
 #EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
 #EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
 
+#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/JS1AqZgBNnOkwJLWlwg-/posters/cb8992fa-5488-4c94-a1d3-fbb30bcb9afe.png", EPL channel 1
+https://raw.githubusercontent.com/raselmia9/Toffee-auto/refs/heads/main/Live_event_premium_channel/EPL%20channel%201.m3u8
+#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
+#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
+
 #EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/V__o054BObUt2AG6LL5C/posters/84590b8d-6430-4ba8-a0a5-757bf2f57c05.png", WC Match Recap
 https://toffeelive.com/en/watch/V__o054BObUt2AG6LL5C
 #EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
