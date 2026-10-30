@@ -110,6 +110,36 @@ https://raw.githubusercontent.com/raselmia9/Toffee-auto/refs/heads/main/Live_eve
 #EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
 #EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
 
+#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/Mi1QqZgBNnOkwJLWxggo/posters/a29e2cc5-ff39-46bb-be79-eab1237ba9fb.png", EPL channel 2
+https://toffeelive.com/en/watch/Mi1QqZgBNnOkwJLWxggo
+#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
+#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
+
+#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/Pi1TqZgBNnOkwJLWVggf/posters/17d4c4ee-e340-4851-93fc-6d5796fd7509.png", EPL channel 3
+https://toffeelive.com/en/watch/Pi1TqZgBNnOkwJLWVggf
+#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
+#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
+
+#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/OyEz-ZgBEef-9-uVnhcx/posters/26a2717f-6821-4228-9844-f5d75756eeef.png", EPL Channel 4
+https://toffeelive.com/en/watch/OyEz-ZgBEef-9-uVnhcx
+#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
+#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
+
+#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/6CHi_5gBEef-9-uV-Bx_/posters/b28d5053-3277-43d1-9fca-fc0d678b5c5b.png", EPL Channel 5
+https://toffeelive.com/en/watch/6CHi_5gBEef-9-uV-Bx_
+#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
+#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
+
+#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/6y_b4poBNnOkwJLWmn7X/posters/4e4886e5-b69d-43f5-941c-dafb083841b3.png", EPL Channel 6
+https://toffeelive.com/en/watch/6y_b4poBNnOkwJLWmn7X
+#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
+#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
+
+#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/li_llpsBNnOkwJLWzf3P/posters/560733b4-05da-4d26-9b75-b9a334cae79d.png", EPL channel 7
+https://toffeelive.com/en/watch/li_llpsBNnOkwJLWzf3P
+#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
+#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
+
 #EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/V__o054BObUt2AG6LL5C/posters/84590b8d-6430-4ba8-a0a5-757bf2f57c05.png", WC Match Recap
 https://toffeelive.com/en/watch/V__o054BObUt2AG6LL5C
 #EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
@@ -132,21 +162,6 @@ https://toffeelive.com/en/watch/sy5m-JQBv9knK3AHYTTk
 
 #EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/vi5n-JQBv9knK3AHqzTC/posters/d171fd4d-0369-4213-b0c5-e241974f5459.png", Sony Ten Sports 5 HD
 https://toffeelive.com/en/watch/vi5n-JQBv9knK3AHqzTC
-#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
-#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
-
-#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/itdbVKEBalKyvLQI94RR/posters/f92c276c-543c-40db-b9f0-a53b86c497a2.png", SAFF Live 1
-https://toffeelive.com/en/watch/itdbVKEBalKyvLQI94RR
-#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
-#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
-
-#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/ra2x_pQBrjBfS2_RWG9l/posters/795170c2-ec78-457e-9fa0-54a23d23361c.webp", Sony Ten Cricket
-https://toffeelive.com/en/watch/ra2x_pQBrjBfS2_RWG9l
-#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
-#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
-
-#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/Uy6Q-JQBv9knK3AHcDUQ/posters/01709bcd-6d53-4710-a64f-bc49cecf1d61.webp", Eurosport HD
-https://bldcmprod-cdn.toffeelive.com/cdn/live/euro_sports_hd/playlist.m3u8
 #EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
 #EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
 
