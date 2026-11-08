@@ -105,6 +105,26 @@ https://toffeelive.com/en/watch/WyPuDJsBEef-9-uVUA_z
 #EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
 #EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
 
+#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/I4fIpqEBJIOHmUelirBF/posters/da8ffef4-f109-4dcc-a430-8020a21b81ce.png", SAFF Live 3 Bangla
+https://toffeelive.com/en/watch/I4fIpqEBJIOHmUelirBF
+#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
+#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
+
+#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/itdbVKEBalKyvLQI94RR/posters/d990ee33-c37b-4806-86e1-f0998f7db239.png", SAFF Live 1
+https://toffeelive.com/en/watch/itdbVKEBalKyvLQI94RR
+#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
+#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
+
+#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/JdjLpqEBalKyvLQIrDPD/posters/dede2169-1b5e-4342-bf55-4fd72cb596f3.png", SAFF Live 4 Bangla
+https://toffeelive.com/en/watch/JdjLpqEBalKyvLQIrDPD
+#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
+#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
+
+#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/9dijmqEBalKyvLQIIAFj/posters/c6ab0af9-2523-4693-994c-82e7bc1e5483.png", SAFF Live 2
+https://toffeelive.com/en/watch/9dijmqEBalKyvLQIIAFj
+#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
+#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
+
 #EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/JS1AqZgBNnOkwJLWlwg-/posters/a5558fc4-f518-4e11-ad29-ef6dc1e84123.png", EPL channel 1
 https://raw.githubusercontent.com/raselmia9/Toffee-auto/refs/heads/main/Live_event_premium_channel/EPL%20channel%201.m3u8
 #EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
@@ -127,26 +147,6 @@ https://toffeelive.com/en/watch/OyEz-ZgBEef-9-uVnhcx
 
 #EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/6CHi_5gBEef-9-uV-Bx_/posters/9139aeae-8d63-4b15-92cd-590a44661185.png", EPL Channel 5
 https://toffeelive.com/en/watch/6CHi_5gBEef-9-uV-Bx_
-#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
-#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
-
-#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/itdbVKEBalKyvLQI94RR/posters/d990ee33-c37b-4806-86e1-f0998f7db239.png", SAFF Live 1
-https://toffeelive.com/en/watch/itdbVKEBalKyvLQI94RR
-#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
-#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
-
-#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/I4fIpqEBJIOHmUelirBF/posters/2ed98f3b-f0b5-4e34-a107-bdd4ac3f0932.png", SAFF Live 3 Bangla
-https://toffeelive.com/en/watch/I4fIpqEBJIOHmUelirBF
-#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
-#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
-
-#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/9dijmqEBalKyvLQIIAFj/posters/c6ab0af9-2523-4693-994c-82e7bc1e5483.png", SAFF Live 2
-https://toffeelive.com/en/watch/9dijmqEBalKyvLQIIAFj
-#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
-#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
-
-#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/JdjLpqEBalKyvLQIrDPD/posters/344a2952-5030-4412-aec4-d1769acc45dd.png", SAFF Live 4 Bangla
-https://toffeelive.com/en/watch/JdjLpqEBalKyvLQIrDPD
 #EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
 #EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
 
