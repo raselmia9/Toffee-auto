@@ -105,16 +105,6 @@ https://toffeelive.com/en/watch/WyPuDJsBEef-9-uVUA_z
 #EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
 #EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
 
-#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/I4fIpqEBJIOHmUelirBF/posters/d074ad7a-164e-4ac9-aa6d-a637e335657f.png", SAFF Live 3 Bangla
-https://toffeelive.com/en/watch/I4fIpqEBJIOHmUelirBF
-#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
-#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
-
-#EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/itdbVKEBalKyvLQI94RR/posters/53483a01-29da-46d0-b7d1-7d2ad5fd2fea.png", SAFF Live 1
-https://toffeelive.com/en/watch/itdbVKEBalKyvLQI94RR
-#EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
-#EXTHTTP:{"cookie":"Edge-Cache-Cookie="}
-
 #EXTINF:-1 group-title="[LIVE] BDIX ♛" tvg-logo="https://assets-prod.services.toffeelive.com/w_480,q_75,f_webp/JS1AqZgBNnOkwJLWlwg-/posters/5dfa7671-cacb-43ee-8977-f4b4ebf32bda.png", EPL channel 1
 https://raw.githubusercontent.com/raselmia9/Toffee-auto/refs/heads/main/Live_event_premium_channel/EPL%20channel%201.m3u8
 #EXTVLCOPT:http-user-agent=Toffee (Linux;Android 14)
